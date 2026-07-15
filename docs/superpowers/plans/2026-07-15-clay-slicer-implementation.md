@@ -612,30 +612,30 @@ Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStal
 
 **Steps:**
 
-- [ ] Remove the fixed engine `<script>` from `index.html`; loading must be owned by one
+- [x] Remove the fixed engine `<script>` from `index.html`; loading must be owned by one
   retryable module rather than duplicated polling in `App` and `kiri.ts`.
-- [ ] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically imports the current
+- [x] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically imports the current
   official ESM entrypoint, `https://grid.space/lib/kiri/run/engine.js`, and installs a small
   `window.kiri.newEngine` compatibility bridge for the existing wrapper/App. It shares an
   in-flight promise, times out cleanly, and cache-busts a failed module import on retry. The
   former documented URL, `https://grid.space/code/engine.js`, now serves HTML and must not be
   used.
-- [ ] Make the CDN URL a named constant so later self-hosting is one controlled change.
-- [ ] Ensure timers and late module resolutions are cleaned up/ignored on success, failure,
+- [x] Make the CDN URL a named constant so later self-hosting is one controlled change.
+- [x] Ensure timers and late module resolutions are cleaned up/ignored on success, failure,
   timeout, and retry.
-- [ ] Keep `sliceToGcode` as the only engine pipeline wrapper. Test exact call order,
+- [x] Keep `sliceToGcode` as the only engine pipeline wrapper. Test exact call order,
   listener forwarding, and errors from parse/slice/prepare/export.
-- [ ] Convert non-string listener messages safely even if `JSON.stringify` throws.
-- [ ] Reject exported G-code when `trim()` is empty with a specific retryable error.
-- [ ] Accept copied/retained STL input without mutating it. Keep device and process typed at
+- [x] Convert non-string listener messages safely even if `JSON.stringify` throws.
+- [x] Reject exported G-code when `trim()` is empty with a specific retryable error.
+- [x] Accept copied/retained STL input without mutating it. Keep device and process typed at
   the boundary.
-- [ ] Tests use a mocked module importer/global engine and fake timers; no network call is
+- [x] Tests use a mocked module importer/global engine and fake timers; no network call is
   allowed.
 
 **Verification:**
 
-- [ ] `npm test -- tests/kiri-loader.test.ts tests/kiri.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/kiri-loader.test.ts tests/kiri.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: add retryable Kiri engine loading`
 

@@ -1,6 +1,8 @@
 // Thin typed wrapper around the Kiri:Moto headless Engine API.
 // Source of truth: https://docs.grid.space/kiri-moto/engine-apis
-// The global `kiri` is provided by the engine.js script loaded in index.html.
+// The global `kiri` compatibility factory is installed by kiri-loader.ts.
+
+import { loadKiri } from "./kiri-loader";
 
 export type KiriMode = "FDM" | "CAM" | "LASER" | "SLA";
 
@@ -20,27 +22,9 @@ export interface KiriEngine {
   export(): Promise<string>;
 }
 
-declare global {
-  interface Window {
-    kiri?: { newEngine(): KiriEngine };
-  }
-}
-
-/** Resolve once the grid.space engine.js global is available. */
+/** Resolve once the dynamic Kiri engine module has installed its compatibility global. */
 export function waitForKiri(timeoutMs = 15000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.kiri?.newEngine) return resolve();
-    const start = Date.now();
-    const t = setInterval(() => {
-      if (window.kiri?.newEngine) {
-        clearInterval(t);
-        resolve();
-      } else if (Date.now() - start > timeoutMs) {
-        clearInterval(t);
-        reject(new Error("Kiri:Moto engine.js failed to load (check network / grid.space)."));
-      }
-    }, 100);
-  });
+  return loadKiri({ timeoutMs });
 }
 
 export interface SliceArgs {
@@ -55,13 +39,45 @@ export async function sliceToGcode({ stl, device, process, onLog }: SliceArgs): 
   await waitForKiri();
   const engine = window.kiri!.newEngine();
   engine.setListener((msg) => {
-    if (onLog) onLog(typeof msg === "string" ? msg : JSON.stringify(msg));
+    if (onLog) onLog(formatEngineMessage(msg));
   });
-  await engine.parse(stl);
+  await engine.parse(stl.slice(0));
   engine.setMode("FDM");
   engine.setDevice(device);
   engine.setProcess(process);
   await engine.slice();
   await engine.prepare();
-  return engine.export();
+  const gcode = await engine.export();
+  if (typeof gcode !== "string" || gcode.trim() === "") {
+    throw new EmptyGcodeError();
+  }
+  return gcode;
+}
+
+export class EmptyGcodeError extends Error {
+  constructor() {
+    super("Kiri:Moto exported empty G-code. Retry slicing this model.");
+    this.name = "EmptyGcodeError";
+  }
+}
+
+function formatEngineMessage(message: unknown): string {
+  if (typeof message === "string") return message;
+  try {
+    const json = JSON.stringify(message);
+    if (json !== undefined) return json;
+  } catch {
+    // Fall through to a simpler representation.
+  }
+  try {
+    return String(message);
+  } catch {
+    return "Unserializable Kiri:Moto engine message";
+  }
+}
+
+// Compatibility for the PoC App's readiness polling until Task 11 owns loading explicitly.
+const isTest = (import.meta as ImportMeta & { env?: { MODE?: string } }).env?.MODE === "test";
+if (typeof window !== "undefined" && !isTest) {
+  void loadKiri().catch(() => undefined);
 }
