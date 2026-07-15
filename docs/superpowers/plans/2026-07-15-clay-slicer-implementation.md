@@ -405,24 +405,24 @@ export function parseToolpath(
 
 **Steps:**
 
-- [ ] Write fixture-based tests before rendering any toolpath.
-- [ ] Consume motion records from `gcode-motion.ts`; do not duplicate modal parsing.
-- [ ] Retain only positive-extrusion moves with non-zero XYZ distance.
-- [ ] Group by actual Kiri markers. If absent, use discrete extrusion-Z changes; for continuous
+- [x] Write fixture-based tests before rendering any toolpath.
+- [x] Consume motion records from `gcode-motion.ts`; do not duplicate modal parsing.
+- [x] Retain only positive-extrusion moves with non-zero XYZ distance.
+- [x] Group by actual Kiri markers. If absent, use discrete extrusion-Z changes; for continuous
   vase Z, bucket using `layerHeightHint`.
-- [ ] Keep negative coordinates and 3D Z values unchanged.
-- [ ] Return an empty `Toolpath` for valid G-code with no extrusion. Throw only for genuine
+- [x] Keep negative coordinates and 3D Z values unchanged.
+- [x] Return an empty `Toolpath` for valid G-code with no extrusion. Throw only for genuine
   parser invariants/unusable data so `App` can isolate failure from slicing.
-- [ ] Test exact fixture layer count, representative first/last coordinates, travel/retraction
+- [x] Test exact fixture layer count, representative first/last coordinates, travel/retraction
   exclusion, relative E, absolute E with `G92`, empty input, marker fallback, and continuous-Z
   vase grouping.
-- [ ] Add a regression test proving the input string is not mutated and unknown commands do
+- [x] Add a regression test proving the input string is not mutated and unknown commands do
   not fail parsing.
 
 **Verification:**
 
-- [ ] `npm test -- tests/gcode-toolpath.test.ts tests/gcode-motion.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/gcode-toolpath.test.ts tests/gcode-motion.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: parse G-code extrusion toolpaths by layer`
 
@@ -609,18 +609,26 @@ Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStal
 - Modify: `src/kiri.ts`
 - Add: `tests/kiri-loader.test.ts`
 - Add: `tests/kiri.test.ts`
+- Add: `public/lib/kiri/run/engine.js`
+- Add: `public/lib/kiri/run/worker.js`
+- Add: `public/wasm/manifold.wasm`
+- Add: `public/lib/kiri/README.md`
 
 **Steps:**
 
 - [x] Remove the fixed engine `<script>` from `index.html`; loading must be owned by one
   retryable module rather than duplicated polling in `App` and `kiri.ts`.
-- [x] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically imports the current
-  official ESM entrypoint, `https://grid.space/lib/kiri/run/engine.js`, and installs a small
+- [x] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically imports the pinned,
+  same-origin ESM entrypoint at `/lib/kiri/run/engine.js` and installs a small
   `window.kiri.newEngine` compatibility bridge for the existing wrapper/App. It shares an
   in-flight promise, times out cleanly, and cache-busts a failed module import on retry. The
   former documented URL, `https://grid.space/code/engine.js`, now serves HTML and must not be
   used.
-- [x] Make the CDN URL a named constant so later self-hosting is one controlled change.
+- [x] Vendor the matching Kiri 4.7.1 engine, worker, and Manifold WASM artifacts under
+  `public/`, record provenance/checksums/licensing, and pass the explicit same-origin
+  `/lib/kiri/run/worker.js` URL to the official constructor. These assets must be updated as a
+  version-matched set.
+- [x] Make the engine and worker URLs named constants.
 - [x] Ensure timers and late module resolutions are cleaned up/ignored on success, failure,
   timeout, and retry.
 - [x] Keep `sliceToGcode` as the only engine pipeline wrapper. Test exact call order,
@@ -896,8 +904,8 @@ Do not copy the full viewer component or its unrelated subsystems.
   project root is this folder, build command `npm run build`, output directory `dist`.
 - [ ] State that slicing is fully client-side and presets are calibration seeds.
 - [ ] Document supported STL-only scope and v1 non-goals.
-- [ ] Document CDN dependency and self-hosting of `engine.js`, `kiri_work.js`, and
-  `kiri_pool.js` as the hardening follow-up.
+- [ ] Document the pinned, self-hosted Kiri engine/worker/WASM assets and their coordinated
+  update procedure.
 - [ ] Label time/extrusion/overhang/feature outputs as estimates/advisories.
 
 **Automated release gate:**
@@ -941,7 +949,7 @@ npm run preview -- --host 127.0.0.1
 
 - [ ] Deploy a preview using the chosen Pages workflow.
 - [ ] Repeat upload -> configure -> slice -> preview -> download on the preview URL.
-- [ ] Verify the CDN engine and its worker/pool requests load from the deployed origin.
+- [ ] Verify the self-hosted engine, worker, and WASM requests load from the deployed origin.
 - [ ] Confirm HTTPS, asset paths, MIME types, caching, and no SPA fallback requirement (v1 has
   no routes).
 - [ ] Record the preview/production URL and date in `docs/manual-smoke-test.md`.
@@ -969,7 +977,6 @@ npm run preview -- --host 127.0.0.1
 
 ## Explicitly Deferred After v1
 
-- Self-hosting Kiri engine/worker/pool scripts.
 - Real mesh-thickness/feature-size analysis.
 - Automatic orientation/rotation for fit.
 - Supports, non-planar slicing, free-form printers, accounts, storage, ordering, payments,
