@@ -290,28 +290,28 @@ export function clayProcess(
 
 **Steps:**
 
-- [ ] Write tests for three stable unique IDs, bed shapes/dimensions, positive nozzles, and
+- [x] Write tests for three stable unique IDs, bed shapes/dimensions, positive nozzles, and
   default controls.
-- [ ] Test every preset macro after stripping comments; none may execute `M104`, `M109`,
+- [x] Test every preset macro after stripping comments; none may execute `M104`, `M109`,
   `M140`, or `M190`.
-- [ ] Move `clayDevice` out of `clay-profile.ts` into the Ender preset. Keep a temporary
+- [x] Move `clayDevice` out of `clay-profile.ts` into the Ender preset. Keep a temporary
   compatibility export only if necessary to keep `App` building until Task 11.
-- [ ] Add the two circular seed profiles with `originCenter: true`; keep the Ender rectangular
+- [x] Add the two circular seed profiles with `originCenter: true`; keep the Ender rectangular
   profile's existing origin/device behavior until empirical verification.
-- [ ] Give each preset its own `defaultControls`, even if v1 values are initially identical.
-- [ ] Merge process defaults into a new object, then override all user-controlled fields.
+- [x] Give each preset its own `defaultControls`, even if v1 values are initially identical.
+- [x] Merge process defaults into a new object, then override all user-controlled fields.
   Never mutate preset objects or `controls`.
-- [ ] Preserve cold-head behavior: zero temperature, zero retraction, zero fan, cold start/end
+- [x] Preserve cold-head behavior: zero temperature, zero retraction, zero fan, cold start/end
   macros, and the vase/shell/top-layer mapping.
-- [ ] Test exact `sliceHeight`, `firstSliceHeight`, line width, shells, top/bottom layers,
+- [x] Test exact `sliceHeight`, `firstSliceHeight`, line width, shells, top/bottom layers,
   feedrate, seekrate, retraction, temperature, and vase fields.
-- [ ] Test that unrelated preset defaults survive the merge and repeated calls return new
+- [x] Test that unrelated preset defaults survive the merge and repeated calls return new
   objects.
 
 **Verification:**
 
-- [ ] `npm test -- tests/machines.test.ts tests/clay-profile.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/machines.test.ts tests/clay-profile.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: add clay printer preset registry`
 
