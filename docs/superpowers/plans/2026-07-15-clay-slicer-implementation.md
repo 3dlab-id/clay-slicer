@@ -248,9 +248,9 @@ export interface Warning {
 
 **Verification:**
 
-- [ ] `npm test -- tests/domain.test.ts` passes.
-- [ ] `npm run build` passes with no unused-type errors.
-- [ ] `git diff --check` passes.
+- [x] `npm test -- tests/domain.test.ts` passes.
+- [x] `npm run build` passes with no unused-type errors.
+- [x] `git diff --check` passes.
 
 **Commit:** `test: establish clay slicer test harness and domain contracts`
 
@@ -969,4 +969,3 @@ npm run preview -- --host 127.0.0.1
 - Automatic orientation/rotation for fit.
 - Supports, non-planar slicing, free-form printers, accounts, storage, ordering, payments,
   multi-material, and backend services.
-
