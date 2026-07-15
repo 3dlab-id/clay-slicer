@@ -571,21 +571,21 @@ result/error/log, active request ID, and fit acknowledgement.
 
 **Required transitions:**
 
-- [ ] Engine readiness is independent of upload/workflow; engine failure preserves the model.
-- [ ] Successful upload moves `empty -> modelLoaded`, resets previous result/error/log and fit
+- [x] Engine readiness is independent of upload/workflow; engine failure preserves the model.
+- [x] Successful upload moves `empty -> modelLoaded`, resets previous result/error/log and fit
   acknowledgement, and advances to Configure.
-- [ ] Invalid upload leaves the workflow on Upload with an upload error.
-- [ ] Machine/control changes increment input revision, reset acknowledgement, and make an
+- [x] Invalid upload leaves the workflow on Upload with an upload error.
+- [x] Machine/control changes increment input revision, reset acknowledgement, and make an
   existing result stale without deleting the retained G-code immediately.
-- [ ] Slice start captures `{requestId, revision}` and enters `slicing`.
-- [ ] Slice success is accepted only when request ID and revision are still current. A late
+- [x] Slice start captures `{requestId, revision}` and enters `slicing`.
+- [x] Slice success is accepted only when request ID and revision are still current. A late
   result from an old file/settings snapshot is ignored.
-- [ ] Slice failure preserves the model/settings and enters `sliceError` with retry possible.
-- [ ] Toolpath failure belongs inside a successful `SliceResult`; it does not change workflow
+- [x] Slice failure preserves the model/settings and enters `sliceError` with retry possible.
+- [x] Toolpath failure belongs inside a successful `SliceResult`; it does not change workflow
   to error.
-- [ ] Preview/Download step access is blocked when no current result exists or the result is
+- [x] Preview/Download step access is blocked when no current result exists or the result is
   stale. Upload and Configure remain reachable.
-- [ ] Fit acknowledgement applies only to the current revision/result and resets on any
+- [x] Fit acknowledgement applies only to the current revision/result and resets on any
   relevant input change.
 
 Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStale`,
@@ -593,8 +593,8 @@ Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStal
 
 **Verification:**
 
-- [ ] `npm test -- tests/workflow.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/workflow.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: define clay slicer workflow state machine`
 
