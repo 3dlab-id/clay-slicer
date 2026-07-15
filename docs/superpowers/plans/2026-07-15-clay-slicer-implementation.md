@@ -661,34 +661,34 @@ Do not copy the full viewer component or its unrelated subsystems.
 
 **Viewport behavior:**
 
-- [ ] Create renderer, scene, perspective camera with `up = (0,0,1)`, OrbitControls, resize
+- [x] Create renderer, scene, perspective camera with `up = (0,0,1)`, OrbitControls, resize
   observer, and a demand-render callback.
-- [ ] Cap DPR at 2. Render on controls change, resize, and explicit invalidation; no permanent
+- [x] Cap DPR at 2. Render on controls change, resize, and explicit invalidation; no permanent
   RAF loop.
-- [ ] Camera fit frames an object's bounding sphere from an angled Z-up direction and handles
+- [x] Camera fit frames an object's bounding sphere from an angled Z-up direction and handles
   empty/zero-radius bounds safely.
-- [ ] Cleanup removes listeners/observer, disposes controls/renderer and viewport-owned
+- [x] Cleanup removes listeners/observer, disposes controls/renderer and viewport-owned
   geometries/materials, and removes the canvas. Parent-owned model geometry is not disposed
   by the viewport.
-- [ ] Convert WebGL construction failure into a local preview notice, not an App crash.
+- [x] Convert WebGL construction failure into a local preview notice, not an App crash.
 
 **Bed/model behavior:**
 
-- [ ] `bed-geometry.ts` creates packed line positions for a rectangular or circular footprint
+- [x] `bed-geometry.ts` creates packed line positions for a rectangular or circular footprint
   and maximum-height volume. Circular beds are visibly circular, not a square proxy.
-- [ ] `ModelPreview` receives normalized geometry, preset, and fit status only. It has no STL
+- [x] `ModelPreview` receives normalized geometry, preset, and fit status only. It has no STL
   parsing or slicing logic.
-- [ ] Add a matte clay-colored mesh, ambient/directional lights, bed/grid, and height outline.
+- [x] Add a matte clay-colored mesh, ambient/directional lights, bed/grid, and height outline.
   Color/text must make out-of-fit state recognizable without relying only on color.
-- [ ] Camera initially fits enough of the model and bed to understand scale.
-- [ ] Give the canvas an accessible name and show textual dimensions/bed summary.
-- [ ] Unit-test pure bed geometry and component fallback/cleanup with Three constructors mocked
+- [x] Camera initially fits enough of the model and bed to understand scale.
+- [x] Give the canvas an accessible name and show textual dimensions/bed summary.
+- [x] Unit-test pure bed geometry and component fallback/cleanup with Three constructors mocked
   where jsdom cannot create WebGL. Manually verify real WebGL in Task 13.
 
 **Verification:**
 
-- [ ] `npm test -- tests/bed-geometry.test.ts tests/components/ModelPreview.test.tsx`
-- [ ] `npm run build`
+- [x] `npm test -- tests/bed-geometry.test.ts tests/components/ModelPreview.test.tsx`
+- [x] `npm run build`
 
 **Commit:** `feat: add machine-aware 3D model preview`
 
