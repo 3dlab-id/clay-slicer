@@ -15,7 +15,7 @@ export function WarningsPanel({ warnings }: { warnings: Warning[] }) {
       <h3>Feasibility checks</h3>
       <ul>
         {warnings.map((warning) => (
-          <li key={warning.id} className={`warning ${warning.severity}`}>
+          <li key={warning.id} className={`warning ${warning.severity}`} data-severity={warning.severity}>
             <strong>{SEVERITY_LABEL[warning.severity]}: {warning.title}</strong>
             <span>{warning.message}</span>
           </li>

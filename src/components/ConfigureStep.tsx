@@ -60,7 +60,7 @@ export function ConfigureStep({
   return (
     <section className="step-panel configure-layout" aria-labelledby="configure-heading">
       <div>
-        <h2 id="configure-heading">Configure the clay print</h2>
+        <h2 id="configure-heading" tabIndex={-1}>Configure the Clay Print</h2>
         <p className="seed-note">Machine presets are calibration seeds. Verify settings on your printer.</p>
         <div className="model-summary compact-summary">
           <strong>{fileName}</strong>
@@ -69,6 +69,8 @@ export function ConfigureStep({
         <label htmlFor="machine-preset">Clay printer</label>
         <select
           id="machine-preset"
+          name="machineId"
+          autoComplete="off"
           value={preset.id}
           onChange={(event) => onMachineChange(event.target.value)}
         >
@@ -84,26 +86,28 @@ export function ConfigureStep({
 
         <div className="control-grid">
           <label htmlFor="layer-height">Layer height <output>{controls.layerHeight.toFixed(2)} mm</output></label>
-          <input id="layer-height" type="range" min="0.3" max="2" step="0.05"
+          <input id="layer-height" name="layerHeight" autoComplete="off" type="range" min="0.3" max="2" step="0.05"
             value={controls.layerHeight} onChange={(event) => update("layerHeight", Number(event.target.value))} />
           <label htmlFor="line-width">Line width <output>{controls.lineWidth.toFixed(2)} mm</output></label>
-          <input id="line-width" type="range" min="0.8" max="3" step="0.05"
+          <input id="line-width" name="lineWidth" autoComplete="off" type="range" min="0.8" max="3" step="0.05"
             value={controls.lineWidth} onChange={(event) => update("lineWidth", Number(event.target.value))} />
           <label htmlFor="print-speed">Print speed <output>{controls.printSpeed} mm/s</output></label>
-          <input id="print-speed" type="range" min="5" max="60" step="1"
+          <input id="print-speed" name="printSpeed" autoComplete="off" type="range" min="5" max="60" step="1"
             value={controls.printSpeed} onChange={(event) => update("printSpeed", Number(event.target.value))} />
           <label className="checkbox-row">
-            <input type="checkbox" checked={controls.vaseMode}
+            <input type="checkbox" name="vaseMode" checked={controls.vaseMode}
               onChange={(event) => update("vaseMode", event.target.checked)} />
             Vase mode (continuous single wall)
           </label>
         </div>
 
-        {engineState === "loading" && <p aria-live="polite">Loading slicing engine…</p>}
+        <p className="status-region" role="status" aria-live="polite">
+          {engineState === "loading" ? "Loading slicing engine…" : ""}
+        </p>
         {engineState === "failed" && (
           <div role="alert" className="alert error">
             <p>{engineError}</p>
-            <button type="button" onClick={onRetryEngine}>Retry engine</button>
+            <button type="button" data-engine-retry onClick={onRetryEngine}>Retry engine</button>
           </div>
         )}
         {previewStale && (

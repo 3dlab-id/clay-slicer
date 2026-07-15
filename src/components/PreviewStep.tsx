@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useState } from "react";
 import type { MachinePreset } from "../machines";
 import type { ModelAsset } from "../model-analysis";
 import type { SliceResult, WorkflowState } from "../workflow";
@@ -50,11 +50,30 @@ export function PreviewStep({
     ({ id }) => id === "fit-footprint" || id === "fit-height",
   ) ?? modelFitError;
 
+  const selectTab = (nextTab: PreviewTab) => {
+    if (nextTab === "toolpath" && !toolpathAvailable) return;
+    setTab(nextTab);
+    document.getElementById(`preview-tab-${nextTab}`)?.focus();
+  };
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const enabledTabs: PreviewTab[] = toolpathAvailable ? ["model", "toolpath"] : ["model"];
+    const currentIndex = enabledTabs.indexOf(tab);
+    let nextIndex: number | undefined;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (currentIndex + 1) % enabledTabs.length;
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (currentIndex - 1 + enabledTabs.length) % enabledTabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = enabledTabs.length - 1;
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    selectTab(enabledTabs[nextIndex]!);
+  };
+
   return (
     <section className="step-panel" aria-labelledby="preview-heading">
       <div className="step-heading-row">
         <div>
-          <h2 id="preview-heading">Preview the slice</h2>
+          <h2 id="preview-heading" tabIndex={-1}>Preview the Slice</h2>
           <p>Review model fit, estimated output, and printable toolpaths.</p>
         </div>
         {result && !stale && (
@@ -62,7 +81,10 @@ export function PreviewStep({
         )}
       </div>
 
-      {workflowState === "slicing" && <p className="progress" aria-live="polite">Slicing model…</p>}
+      <p className={workflowState === "slicing" ? "progress status-region" : "status-region"}
+        role="status" aria-live="polite">
+        {workflowState === "slicing" ? "Slicing model…" : ""}
+      </p>
       {stale && (
         <div role="alert" className="alert warning">
           <strong>Preview out of date.</strong> This result is no longer current. Finish or retry
@@ -71,7 +93,7 @@ export function PreviewStep({
       )}
       {sliceError && <p role="alert" className="alert error">{sliceError}</p>}
       {(stale || workflowState === "sliceError") && (
-        <button className="primary compact" type="button" disabled={!canSlice} onClick={onSlice}>
+        <button className="primary compact" type="button" data-slice-retry disabled={!canSlice} onClick={onSlice}>
           Re-slice model
         </button>
       )}
@@ -79,18 +101,23 @@ export function PreviewStep({
       {result ? (
         <>
           <div className="preview-tabs" role="tablist" aria-label="Preview type">
-            <button type="button" role="tab" aria-selected={tab === "model"}
-              onClick={() => setTab("model")}>Model</button>
-            <button type="button" role="tab" aria-selected={tab === "toolpath"}
-              disabled={!toolpathAvailable} onClick={() => setTab("toolpath")}>Toolpath</button>
+            <button id="preview-tab-model" type="button" role="tab"
+              aria-selected={tab === "model"} aria-controls="preview-panel"
+              tabIndex={tab === "model" ? 0 : -1} onKeyDown={handleTabKeyDown}
+              onClick={() => selectTab("model")}>Model</button>
+            <button id="preview-tab-toolpath" type="button" role="tab"
+              aria-selected={tab === "toolpath"} aria-controls="preview-panel"
+              tabIndex={tab === "toolpath" ? 0 : -1} disabled={!toolpathAvailable}
+              onKeyDown={handleTabKeyDown} onClick={() => selectTab("toolpath")}>Toolpath</button>
           </div>
           {!toolpathAvailable && (
-            <p className="alert warning">
+            <p className="alert warning" role="status" aria-live="polite">
               Toolpath preview unavailable: {result.toolpathError ?? "no drawable extrusion moves were found"}.
               Model preview, estimates, and G-code remain available.
             </p>
           )}
-          <div role="tabpanel" className="preview-pane">
+          <div id="preview-panel" role="tabpanel" className="preview-pane"
+            aria-labelledby={`preview-tab-${tab}`} tabIndex={0}>
             {tab === "model" ? (
               <ModelPreview geometry={asset.geometry} preset={preset}
                 fitStatus={hasFitError ? "does-not-fit" : "fits"} />

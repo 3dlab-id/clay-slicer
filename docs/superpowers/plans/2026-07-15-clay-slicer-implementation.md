@@ -847,43 +847,43 @@ Do not copy the full viewer component or its unrelated subsystems.
 
 **Safety behavior:**
 
-- [ ] If current warnings contain `fit-footprint` or `fit-height`, show an unchecked explicit
+- [x] If current warnings contain `fit-footprint` or `fit-height`, show an unchecked explicit
   acknowledgement naming the exceeded build volume. Download becomes available only after it
   is checked.
-- [ ] Reset acknowledgement after file, machine, controls, or successful re-slice changes the
+- [x] Reset acknowledgement after file, machine, controls, or successful re-slice changes the
   current revision/result.
-- [ ] Heating errors always block download and explain which commands/lines were found.
-- [ ] Other warn/info messages do not block but remain visible beside the button.
-- [ ] Toolpath parser failure does not block a safe G-code download.
+- [x] Heating errors always block download and explain which commands/lines were found.
+- [x] Other warn/info messages do not block but remain visible beside the button.
+- [x] Toolpath parser failure does not block a safe G-code download.
 
 **Recovery and UX:**
 
-- [ ] Engine Retry reinjects the CDN script and retains model/settings.
-- [ ] Slice Retry uses current inputs and clears only the prior slice error/log.
-- [ ] All async states have text status; errors use `role="alert"`; progress uses
+- [x] Engine Retry reloads the vendored engine module and retains model/settings.
+- [x] Slice Retry uses current inputs and clears only the prior slice error/log.
+- [x] All async states have text status; errors use `role="alert"`; progress uses
   `aria-live="polite"`.
-- [ ] Mobile/narrow layout is single-column, previews use stable aspect/min-height, sliders and
+- [x] Mobile/narrow layout is single-column, previews use stable aspect/min-height, sliders and
   buttons have adequate targets, and acknowledgement stays adjacent to Download.
-- [ ] Focus moves to the new step heading after deliberate step navigation and returns to a
+- [x] Focus moves to the new step heading after deliberate step navigation and returns to a
   meaningful control after retry errors.
-- [ ] No warning relies only on color; canvas/tabs/ranges/checkboxes have accessible labels.
+- [x] No warning relies only on color; canvas/tabs/ranges/checkboxes have accessible labels.
 
 **Tests:**
 
-- [ ] Filename sanitization and exact machine-aware result.
-- [ ] Blob contains the exact G-code.
-- [ ] Fit acknowledgement gates and resets correctly.
-- [ ] Heating error cannot be overridden.
-- [ ] Stale/blank G-code cannot download.
-- [ ] Toolpath failure still permits an otherwise safe download.
-- [ ] Retry paths and warning repetition on Download.
+- [x] Filename sanitization and exact machine-aware result.
+- [x] Blob contains the exact G-code.
+- [x] Fit acknowledgement gates and resets correctly.
+- [x] Heating error cannot be overridden.
+- [x] Stale/blank G-code cannot download.
+- [x] Toolpath failure still permits an otherwise safe download.
+- [x] Retry paths and warning repetition on Download.
 
 **Verification:**
 
-- [ ] `npm test -- tests/download.test.ts tests/App.test.tsx`
-- [ ] `npm test`
-- [ ] `npm run build`
-- [ ] `git diff --check`
+- [x] `npm test -- tests/download.test.ts tests/App.test.tsx`
+- [x] `npm test`
+- [x] `npm run build`
+- [x] `git diff --check`
 
 **Commit:** `feat: enforce safe clay G-code download flow`
 

@@ -122,6 +122,8 @@ describe("App wizard integration", () => {
     expect(mocks.parseAndAnalyzeStl).toHaveBeenCalledWith(expect.any(ArrayBuffer), 3);
     expect(screen.getByText(/model dimensions: 20\.00 × 10\.00 × 5\.00 mm/i)).toBeInTheDocument();
     expect(screen.getByTestId("model-preview")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /configure the clay print/i })).toHaveFocus();
+    expect(screen.getByRole("link", { name: /skip to main content/i })).toHaveAttribute("href", "#main-content");
   });
 
   it("keeps an invalid upload on Upload with actionable guidance", async () => {
@@ -149,6 +151,18 @@ describe("App wizard integration", () => {
     await screen.findByText(/engine ready/i);
     expect(screen.getByText(/model dimensions: 20\.00/i)).toBeInTheDocument();
     expect(mocks.loadKiri).toHaveBeenLastCalledWith({ retry: true });
+  });
+
+  it("returns focus to Retry engine when a retry fails", async () => {
+    mocks.loadKiri.mockRejectedValue(new Error("engine offline"));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText(/engine failed/i);
+    await upload(user);
+
+    await user.click(screen.getByRole("button", { name: /retry engine/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /retry engine/i })).toHaveFocus());
   });
 
   it("gates wizard steps by available and current data", async () => {
@@ -216,6 +230,18 @@ describe("App wizard integration", () => {
     expect(screen.getByRole("button", { name: /re-slice model/i })).toBeEnabled();
   });
 
+  it("returns focus to Re-slice when a slice retry fails", async () => {
+    mocks.sliceToGcode.mockRejectedValue(new Error("slice unavailable"));
+    const user = await renderReady();
+    await upload(user);
+    await user.click(screen.getByRole("button", { name: /^slice model$/i }));
+    await screen.findByText(/slice unavailable/i);
+
+    await user.click(screen.getByRole("button", { name: /re-slice model/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /re-slice model/i })).toHaveFocus());
+  });
+
   it("blocks stale download while re-slicing current inputs and after that re-slice fails", async () => {
     const user = await renderReady();
     await upload(user);
@@ -272,11 +298,102 @@ describe("App wizard integration", () => {
     await upload(user);
     await slice(user);
 
-    expect(screen.getByText(/toolpath preview unavailable.*unsupported arc/i)).toBeInTheDocument();
+    expect(screen.getByText(/toolpath preview unavailable.*unsupported arc/i)).toHaveAttribute("role", "status");
     expect(screen.getByText(/motion time/i)).toBeInTheDocument();
     expect(screen.getByTestId("model-preview")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /continue to download/i }));
     expect(screen.getByRole("button", { name: /^download G-code$/i })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: /^download G-code$/i }));
+    expect(mocks.downloadGcode).toHaveBeenCalledWith({
+      gcode: "G21\nG1 X1 E1\n",
+      modelName: "vase.stl",
+      machineId: "ender3-clay",
+    });
+  });
+
+  it("gates oversized downloads with a result-scoped acknowledgement that resets", async () => {
+    mocks.parseAndAnalyzeStl.mockImplementation(() => asset({
+      bounds: {
+        min: { x: -150, y: -5, z: 0 },
+        max: { x: 150, y: 5, z: 5 },
+        size: { x: 300, y: 10, z: 5 },
+      },
+    }));
+    const user = await renderReady();
+    await upload(user);
+    await slice(user);
+    expect(screen.getByText(/model exceeds the bed footprint/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /continue to download/i }));
+    expect(screen.getByRole("heading", { name: /download clay g-code/i })).toHaveFocus();
+    expect(screen.getByText(/model exceeds the bed footprint/i)).toBeInTheDocument();
+    const acknowledgement = screen.getByRole("checkbox", { name: /exceeds the selected build volume/i });
+    expect(acknowledgement).not.toBeChecked();
+    expect(screen.getByRole("button", { name: /^download g-code$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^download g-code$/i }))
+      .toHaveAttribute("aria-describedby", "download-blocking-reason");
+    expect(screen.getByRole("status", { name: "" })).toHaveAttribute("id", "download-blocking-reason");
+    await user.click(acknowledgement);
+    expect(screen.getByRole("button", { name: /^download g-code$/i })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: /configure/i }));
+    await user.click(screen.getByLabelText(/vase mode/i));
+    await user.click(screen.getByRole("button", { name: /re-slice model/i }));
+    await screen.findByText(/24/);
+    await user.click(screen.getByRole("button", { name: /continue to download/i }));
+    expect(screen.getByRole("checkbox", { name: /exceeds the selected build volume/i })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: /^download g-code$/i })).toBeDisabled();
+  });
+
+  it("does not let fit acknowledgement override heating command errors", async () => {
+    mocks.parseAndAnalyzeStl.mockImplementation(() => asset({
+      bounds: {
+        min: { x: -150, y: -5, z: 0 },
+        max: { x: 150, y: 5, z: 5 },
+        size: { x: 300, y: 10, z: 5 },
+      },
+    }));
+    mocks.getGcodeStats.mockReturnValue({
+      ...stats,
+      heatingCommands: [{ code: "M104", line: 7 }],
+    });
+    const user = await renderReady();
+    await upload(user);
+    await slice(user);
+    await user.click(screen.getByRole("button", { name: /continue to download/i }));
+
+    expect(screen.getByText(/remove M104 on source line 7/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /exceeds the selected build volume/i }));
+    expect(screen.getByRole("button", { name: /^download g-code$/i })).toBeDisabled();
+  });
+
+  it("never enables download for blank G-code", async () => {
+    mocks.sliceToGcode.mockResolvedValue("   \n");
+    const user = await renderReady();
+    await upload(user);
+    await slice(user);
+    await user.click(screen.getByRole("button", { name: /continue to download/i }));
+
+    await user.click(screen.getByRole("button", { name: /^download g-code$/i }));
+    expect(screen.getByRole("button", { name: /^download g-code$/i })).toBeDisabled();
+    expect(mocks.downloadGcode).not.toHaveBeenCalled();
+  });
+
+  it("supports arrow-key tab navigation with complete tab relationships", async () => {
+    const user = await renderReady();
+    await upload(user);
+    await slice(user);
+    const modelTab = screen.getByRole("tab", { name: /model/i });
+    modelTab.focus();
+    await user.keyboard("{ArrowRight}");
+
+    const toolpathTab = screen.getByRole("tab", { name: /toolpath/i });
+    expect(toolpathTab).toHaveFocus();
+    expect(toolpathTab).toHaveAttribute("aria-selected", "true");
+    expect(modelTab).toHaveAttribute("aria-controls", "preview-panel");
+    expect(toolpathTab).toHaveAttribute("aria-controls", "preview-panel");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "preview-panel");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "preview-tab-toolpath");
   });
 
   it("requires explicit Continue before mounting a huge model preview", async () => {

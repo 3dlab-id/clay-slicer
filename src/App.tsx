@@ -30,6 +30,12 @@ import {
 
 const INITIAL_PRESET = machinePresets[0]!;
 const ENGINE_LOG_LIMIT = 50;
+const STEP_HEADING_ID = {
+  upload: "upload-heading",
+  configure: "configure-heading",
+  preview: "preview-heading",
+  download: "download-heading",
+} as const;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -45,10 +51,14 @@ export function App() {
     }),
   );
   const [hugePreviewApproved, setHugePreviewApproved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const assetRef = useRef<ModelAsset | null>(null);
   const uploadGeneration = useRef(0);
   const sliceGeneration = useRef(0);
   const mounted = useRef(true);
+  const pendingStepFocus = useRef<keyof typeof STEP_HEADING_ID | null>(null);
+  const pendingEngineRetryFocus = useRef(false);
+  const pendingSliceRetryFocus = useRef(false);
   const preset = getMachinePreset(state.machineId) ?? INITIAL_PRESET;
   const preSliceWarnings = useMemo(() => state.model
     ? evaluateModelGuardrails({
@@ -79,11 +89,34 @@ export function App() {
     return () => { active = false; };
   }, [state.engineRetryGeneration]);
 
+  useEffect(() => {
+    if (pendingStepFocus.current !== state.step) return;
+    document.getElementById(STEP_HEADING_ID[state.step])?.focus();
+    pendingStepFocus.current = null;
+  }, [state.step]);
+
+  useEffect(() => {
+    if (state.engineState === "failed" && pendingEngineRetryFocus.current) {
+      document.querySelector<HTMLElement>("[data-engine-retry]")?.focus();
+      pendingEngineRetryFocus.current = false;
+    } else if (state.engineState === "ready") {
+      pendingEngineRetryFocus.current = false;
+    }
+  }, [state.engineState]);
+
+  useEffect(() => {
+    if (state.sliceError && pendingSliceRetryFocus.current) {
+      document.querySelector<HTMLElement>("[data-slice-retry]")?.focus();
+      pendingSliceRetryFocus.current = false;
+    }
+  }, [state.sliceError]);
+
   async function handleFile(file: File) {
     const generation = ++uploadGeneration.current;
     if (assetRef.current) disposeModelAsset(assetRef.current);
     assetRef.current = null;
     setHugePreviewApproved(false);
+    setUploading(true);
     dispatch({ type: "uploadStarted" });
 
     try {
@@ -101,11 +134,14 @@ export function App() {
         buffer,
         asset,
       };
+      pendingStepFocus.current = "configure";
       dispatch({ type: "uploadSucceeded", model });
     } catch (error) {
       if (mounted.current && generation === uploadGeneration.current) {
         dispatch({ type: "uploadFailed", error: errorMessage(error) });
       }
+    } finally {
+      if (mounted.current && generation === uploadGeneration.current) setUploading(false);
     }
   }
 
@@ -130,6 +166,8 @@ export function App() {
     const revision = state.inputRevision;
     const selectedPreset = preset;
     const controls = { ...state.controls };
+    pendingSliceRetryFocus.current = state.workflowState === "sliceError" || isSliceStale(state);
+    pendingStepFocus.current = "preview";
     dispatch({ type: "sliceStarted", requestId, revision });
 
     try {
@@ -174,6 +212,7 @@ export function App() {
           toolpathError,
         },
       });
+      pendingSliceRetryFocus.current = false;
     } catch (error) {
       dispatch({ type: "sliceFailed", requestId, revision, error: errorMessage(error) });
     }
@@ -182,9 +221,22 @@ export function App() {
   const stale = isSliceStale(state);
   const currentResult = hasCurrentSlice(state) ? state.sliceResult : null;
   const filename = buildGcodeFilename(state.model?.file.name ?? "model", state.machineId);
+  const downloadAllowed = Boolean(currentResult?.gcode.trim()) && canDownload(state);
+
+  function navigateTo(step: keyof typeof STEP_HEADING_ID) {
+    if (!canAccessStep(state, step)) return;
+    pendingStepFocus.current = step;
+    dispatch({ type: "stepRequested", step });
+  }
+
+  function retryEngine() {
+    pendingEngineRetryFocus.current = true;
+    dispatch({ type: "engineRetry" });
+  }
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="app-header">
         <div>
           <p className="eyebrow">3D Lab Bali</p>
@@ -199,12 +251,12 @@ export function App() {
       <WizardSteps
         current={state.step}
         canAccess={(step) => canAccessStep(state, step)}
-        onSelect={(step) => dispatch({ type: "stepRequested", step })}
+        onSelect={navigateTo}
       />
 
-      <main>
+      <main id="main-content">
         {state.step === "upload" && (
-          <UploadStep model={state.model} error={state.uploadError} onFile={handleFile} />
+          <UploadStep model={state.model} error={state.uploadError} loading={uploading} onFile={handleFile} />
         )}
         {state.step === "configure" && state.model && (
           <ConfigureStep
@@ -224,7 +276,7 @@ export function App() {
             onApproveHugePreview={() => setHugePreviewApproved(true)}
             onMachineChange={handleMachineChange}
             onControlsChange={handleControlsChange}
-            onRetryEngine={() => dispatch({ type: "engineRetry" })}
+            onRetryEngine={retryEngine}
             onSlice={handleSlice}
           />
         )}
@@ -242,14 +294,19 @@ export function App() {
               ({ id }) => id === "fit-footprint" || id === "fit-height",
             )}
             onSlice={handleSlice}
-            onDownloadStep={() => dispatch({ type: "stepRequested", step: "download" })}
+            onDownloadStep={() => navigateTo("download")}
           />
         )}
         {state.step === "download" && currentResult && state.model && (
           <DownloadStep
             result={currentResult}
             filename={filename}
-            canDownload={canDownload(state)}
+            canDownload={downloadAllowed}
+            fitAcknowledged={state.fitAcknowledgedRevision === currentResult.revision}
+            onFitAcknowledged={(acknowledged) => dispatch({
+              type: "fitAcknowledged",
+              acknowledged,
+            })}
             onDownload={() => downloadGcode({
               gcode: currentResult.gcode,
               modelName: state.model!.file.name,

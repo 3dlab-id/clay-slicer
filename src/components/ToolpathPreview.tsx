@@ -50,6 +50,7 @@ function addLineSegments(
 export function ToolpathPreview({ toolpath, bed }: ToolpathPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewStatus, setPreviewStatus] = useState("");
   const [layerState, setLayerState] = useState<LayerState>(() => ({
     toolpath,
     layerIndex: lastLayerIndex(toolpath),
@@ -80,11 +81,13 @@ export function ToolpathPreview({ toolpath, bed }: ToolpathPreviewProps) {
     const container = containerRef.current;
     if (!container || segmentCount === 0 || !bounds) return;
     setPreviewError(null);
+    setPreviewStatus("Rendering toolpath preview…");
 
     let viewport: ReturnType<typeof createThreeViewport> | undefined;
     try {
       viewport = createThreeViewport(container, "3D clay toolpath preview");
     } catch {
+      setPreviewStatus("");
       setPreviewError("3D toolpath preview is unavailable in this browser. Layer details remain available below.");
       return;
     }
@@ -119,6 +122,7 @@ export function ToolpathPreview({ toolpath, bed }: ToolpathPreviewProps) {
     fitBounds.expandByPoint(new THREE.Vector3(halfWidth, halfDepth, 0));
     viewport.fitToBox(fitBounds);
     viewport.invalidate();
+    setPreviewStatus("Toolpath preview ready.");
 
     return () => {
       for (const entry of [previous, current, footprint]) {
@@ -153,17 +157,19 @@ export function ToolpathPreview({ toolpath, bed }: ToolpathPreviewProps) {
         data-testid="toolpath-preview-viewport"
         style={{ minHeight: 360, position: "relative", width: "100%" }}
       />
+      <p className="status-region" role="status" aria-live="polite">
+        {positions.capped
+          ? "Toolpath exceeds the display limit; showing the current layer only for performance."
+          : previewStatus}
+      </p>
       {previewError && <p role="alert">{previewError}</p>}
-      {positions.capped && (
-        <p role="status">
-          Toolpath exceeds the display limit; showing the current layer only for performance.
-        </p>
-      )}
       <label htmlFor="toolpath-layer">
         Layer {layerNumber} of {layerCount}
       </label>
       <input
         id="toolpath-layer"
+        name="toolpathLayer"
+        autoComplete="off"
         type="range"
         min={0}
         max={Math.max(0, layerCount - 1)}
@@ -179,6 +185,7 @@ export function ToolpathPreview({ toolpath, bed }: ToolpathPreviewProps) {
       <label>
         <input
           type="checkbox"
+          name="showThroughCurrent"
           checked={showThroughCurrent}
           onChange={(event) => setLayerState({
             toolpath,

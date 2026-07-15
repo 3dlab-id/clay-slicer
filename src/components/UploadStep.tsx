@@ -5,10 +5,12 @@ import type { UploadedModel } from "../workflow";
 export function UploadStep({
   model,
   error,
+  loading,
   onFile,
 }: {
   model: UploadedModel<ModelAsset> | null;
   error: string | null;
+  loading: boolean;
   onFile(file: File): void;
 }) {
   const acceptDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -20,18 +22,22 @@ export function UploadStep({
 
   return (
     <section className="step-panel" aria-labelledby="upload-heading">
-      <h2 id="upload-heading">Upload an STL model</h2>
+      <h2 id="upload-heading" tabIndex={-1}>Upload an STL Model</h2>
       <p>STL files are parsed locally in your browser and never uploaded.</p>
       <div
         className="drop-zone"
+        aria-busy={loading}
         onDragOver={(event) => event.preventDefault()}
         onDrop={acceptDrop}
       >
         <label htmlFor="stl-file">Choose an STL file</label>
         <input
           id="stl-file"
+          name="stlFile"
           type="file"
           accept=".stl,model/stl"
+          autoComplete="off"
+          disabled={loading}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) onFile(file);
@@ -40,6 +46,9 @@ export function UploadStep({
         />
         <span>or drag and drop it here</span>
       </div>
+      <p className="status-region" role="status" aria-live="polite">
+        {loading ? "Reading and analyzing STL…" : ""}
+      </p>
       {error && <p role="alert" className="alert error">{error}</p>}
       {model && analysis && (
         <div className="model-summary">
