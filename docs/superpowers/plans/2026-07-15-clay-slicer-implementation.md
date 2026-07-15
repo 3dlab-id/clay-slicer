@@ -705,27 +705,27 @@ Do not copy the full viewer component or its unrelated subsystems.
 
 **Steps:**
 
-- [ ] `ToolpathPreview` accepts `Toolpath` and bed metadata only. It must never parse G-code or
+- [x] `ToolpathPreview` accepts `Toolpath` and bed metadata only. It must never parse G-code or
   call Kiri.
-- [ ] Convert selected layers to packed `Float32Array` line positions. Use at most a small
+- [x] Convert selected layers to packed `Float32Array` line positions. Use at most a small
   fixed number of `LineSegments` objects: current layer bright, previous/all layers muted.
-- [ ] Add a layer slider with labelled `1..N` display, first/middle/last support, keyboard
+- [x] Add a layer slider with labelled `1..N` display, first/middle/last support, keyboard
   operation, and a “current layer / all through current” toggle.
-- [ ] Default to the final layer after a new successful slice so the whole object is visible;
+- [x] Default to the final layer after a new successful slice so the whole object is visible;
   preserve no layer state across a different toolpath.
-- [ ] Reuse the bed footprint helper and Z-up viewport. Fit camera to the union of toolpath and
+- [x] Reuse the bed footprint helper and Z-up viewport. Fit camera to the union of toolpath and
   bed bounds.
-- [ ] Empty toolpaths show a notice and do not construct invalid buffer geometry.
-- [ ] Dispose toolpath-owned geometries/materials on layer change, replacement, and unmount.
-- [ ] Define `MAX_VISIBLE_SEGMENTS = 1_000_000`. Above it, render current-layer-only and show a
+- [x] Empty toolpaths show a notice and do not construct invalid buffer geometry.
+- [x] Dispose toolpath-owned geometries/materials on layer change, replacement, and unmount.
+- [x] Define `MAX_VISIBLE_SEGMENTS = 1_000_000`. Above it, render current-layer-only and show a
   performance notice rather than allocating an unbounded all-layer buffer.
-- [ ] Test slider bounds, packed coordinates, current/all modes, empty layers, segment cap,
+- [x] Test slider bounds, packed coordinates, current/all modes, empty layers, segment cap,
   reset on replacement, and disposal with mocked Three viewport pieces.
 
 **Verification:**
 
-- [ ] `npm test -- tests/toolpath-geometry.test.ts tests/components/ToolpathPreview.test.tsx`
-- [ ] `npm run build`
+- [x] `npm test -- tests/toolpath-geometry.test.ts tests/components/ToolpathPreview.test.tsx`
+- [x] `npm run build`
 
 **Commit:** `feat: add layered 3D toolpath preview`
 
