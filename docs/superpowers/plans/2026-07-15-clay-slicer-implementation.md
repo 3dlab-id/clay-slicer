@@ -518,24 +518,24 @@ export function evaluateGuardrails(args: {
 
 **Steps and tests:**
 
-- [ ] Rectangular exact width/depth/height passes; a small excess on each axis fails.
-- [ ] Circular exact corner radius passes; a small excess fails. Include a box whose width and
+- [x] Rectangular exact width/depth/height passes; a small excess on each axis fails.
+- [x] Circular exact corner radius passes; a small excess fails. Include a box whose width and
   depth individually fit but whose diagonal does not.
-- [ ] Use one named floating tolerance to avoid noise at exact boundaries.
-- [ ] Heating errors list unique command codes and source lines.
-- [ ] Layer ratios immediately below/at/inside/at/above `0.3..0.7` are tested.
-- [ ] General feature-resolution info is deterministic and clearly says it is not exact model
+- [x] Use one named floating tolerance to avoid noise at exact boundaries.
+- [x] Heating errors list unique command codes and source lines.
+- [x] Layer ratios immediately below/at/inside/at/above `0.3..0.7` are tested.
+- [x] General feature-resolution info is deterministic and clearly says it is not exact model
   analysis. If `estimatedFeatureSizeMm` later exists, warn only below the nozzle limit.
-- [ ] Overhang immediately below/at/above 10% is tested and the message says “advisory” and
+- [x] Overhang immediately below/at/above 10% is tested and the message says “advisory” and
   that supports are not generated.
-- [ ] Huge-model warning reflects `ModelAnalysis.isHuge`.
-- [ ] Pre-slice evaluation works with no stats. Combined warning order is stable and IDs do
+- [x] Huge-model warning reflects `ModelAnalysis.isHuge`.
+- [x] Pre-slice evaluation works with no stats. Combined warning order is stable and IDs do
   not depend on presentation text.
 
 **Verification:**
 
-- [ ] `npm test -- tests/guardrails.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/guardrails.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: add clay print feasibility guardrails`
 
@@ -614,18 +614,23 @@ Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStal
 
 - [ ] Remove the fixed engine `<script>` from `index.html`; loading must be owned by one
   retryable module rather than duplicated polling in `App` and `kiri.ts`.
-- [ ] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically injects
-  `https://grid.space/code/engine.js`, resolves when `window.kiri.newEngine` exists, shares an
-  in-flight promise, times out cleanly, and removes/replaces a failed script on retry.
+- [ ] `loadKiri({ retry?: boolean, timeoutMs?: number })` dynamically imports the current
+  official ESM entrypoint, `https://grid.space/lib/kiri/run/engine.js`, and installs a small
+  `window.kiri.newEngine` compatibility bridge for the existing wrapper/App. It shares an
+  in-flight promise, times out cleanly, and cache-busts a failed module import on retry. The
+  former documented URL, `https://grid.space/code/engine.js`, now serves HTML and must not be
+  used.
 - [ ] Make the CDN URL a named constant so later self-hosting is one controlled change.
-- [ ] Ensure timers and event handlers are cleaned up on success, failure, and retry.
+- [ ] Ensure timers and late module resolutions are cleaned up/ignored on success, failure,
+  timeout, and retry.
 - [ ] Keep `sliceToGcode` as the only engine pipeline wrapper. Test exact call order,
   listener forwarding, and errors from parse/slice/prepare/export.
 - [ ] Convert non-string listener messages safely even if `JSON.stringify` throws.
 - [ ] Reject exported G-code when `trim()` is empty with a specific retryable error.
 - [ ] Accept copied/retained STL input without mutating it. Keep device and process typed at
   the boundary.
-- [ ] Tests use a mocked DOM/global engine and fake timers; no network call is allowed.
+- [ ] Tests use a mocked module importer/global engine and fake timers; no network call is
+  allowed.
 
 **Verification:**
 
