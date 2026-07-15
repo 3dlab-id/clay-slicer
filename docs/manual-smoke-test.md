@@ -8,9 +8,9 @@ and corrective commits rather than deleting prior evidence.
 
 | Field | Value |
 | --- | --- |
-| Status | **Local core smoke passed; extended manual and Cloudflare verification pending** |
+| Status | **Local and Cloudflare core smoke passed; extended manual/CI verification pending** |
 | Verification date | 2026-07-15 |
-| Candidate commit | `f3563ab6554dda0d1fc224ea3428ccbd088ff548` plus uncommitted Task 13 documentation |
+| Candidate commit | `a380b0e2c7eb879fa5fb38f6d72eeeada808a394` |
 | Operator | Pending |
 | Target Node.js | `22.16.0` (`.nvmrc`) |
 | Local verification runtime | Node.js `24.12.0`, npm `11.6.2` |
@@ -18,8 +18,8 @@ and corrective commits rather than deleting prior evidence.
 | Kiri:Moto | `4.7.1`, vendored same-origin runtime |
 | Local production preview | `http://127.0.0.1:4173/` — core smoke passed 2026-07-15 |
 | Cloudflare preview URL | Not configured in v1 |
-| Cloudflare production URL | `https://clay-slicer.pages.dev` (pending first deployment) |
-| Production verification date | Pending |
+| Cloudflare production URL | `https://clay-slicer.pages.dev/` |
+| Production verification date | 2026-07-15 |
 
 The Node 22 pin matches Cloudflare Pages build image v3. The local runtime shown above records
 the environment available when this document was created; the clean release gate still needs
@@ -135,21 +135,30 @@ CI Node version: 22
 Required GitHub repository secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
 ```
 
-- [ ] Create the `clay-slicer` Direct Upload Pages project with production branch `main`.
+- [x] Create the `clay-slicer` Direct Upload Pages project with production branch `main`.
 - [ ] Add the two required GitHub repository secrets; do not record their values here.
 - [ ] Confirm a pull request validates without deploying.
 - [ ] Confirm a successful `main` run deploys the retained, tested `dist/` artifact.
 - [ ] Confirm CI verifies `/`, `engine.js`, `worker.js`, and `manifold.wasm` on production.
-- [ ] Record the production deployment commit. Preview deployment is not configured in v1.
-- [ ] Repeat upload → configure → slice → preview → download on the production URL.
-- [ ] Verify engine, worker, and WASM requests load from the deployed origin.
-- [ ] Verify HTTPS and correct JavaScript/WASM MIME types.
-- [ ] Inspect cache headers; do not apply immutable caching to unversioned Kiri paths.
-- [ ] Confirm no SPA fallback or Pages Function handles requests.
+- [x] Record the production deployment commit: `a380b0e2c7eb879fa5fb38f6d72eeeada808a394`.
+  Preview deployment is not configured in v1.
+- [x] Repeat upload → configure → slice → preview → download on the production URL.
+- [x] Verify engine, worker, and WASM requests load from the deployed origin.
+- [x] Verify HTTPS and correct JavaScript/WASM MIME types.
+- [x] Inspect cache headers: unversioned Kiri paths use `max-age=0, must-revalidate`.
+- [x] Confirm no SPA fallback or Pages Function handles requests.
 - [ ] Test engine/network failure and retry on the deployed origin.
-- [ ] Record production URL and verification date.
+- [x] Record production URL and verification date.
 
-Cloudflare notes and evidence: Pending.
+Cloudflare notes and evidence: Wrangler 4.98.0 created the project and uploaded 9 files. The
+immutable deployment URL is `https://fc70a93c.clay-slicer.pages.dev`; the production alias is
+`https://clay-slicer.pages.dev/`. A real mobile-viewport Chrome run on the production alias
+repeated the local evidence: 20 × 10 × 5 mm model, drawable 5-layer toolpath, 196 G-code
+lines, 328.2 mm estimated extrusion, a 4,758-byte machine-aware download with no executable
+heating commands, invalid-STL recovery, and one restored preview canvas. HTML, engine,
+worker, and WASM returned 200; JavaScript used `application/javascript` and WASM used
+`application/wasm`. The known duplicate-Three.js warning was unchanged and no application
+exception was recorded.
 
 ## Sign-off
 

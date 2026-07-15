@@ -954,11 +954,11 @@ npm run preview -- --host 127.0.0.1
 **Cloudflare Pages verification:**
 
 - [ ] Deploy production from a successful `main` run using the chosen Pages workflow.
-- [ ] Repeat upload -> configure -> slice -> preview -> download on the production URL.
-- [ ] Verify the self-hosted engine, worker, and WASM requests load from the deployed origin.
-- [ ] Confirm HTTPS, asset paths, MIME types, caching, and no SPA fallback requirement (v1 has
+- [x] Repeat upload -> configure -> slice -> preview -> download on the production URL.
+- [x] Verify the self-hosted engine, worker, and WASM requests load from the deployed origin.
+- [x] Confirm HTTPS, asset paths, MIME types, caching, and no SPA fallback requirement (v1 has
   no routes).
-- [ ] Record the production URL, commit, and date in `docs/manual-smoke-test.md`.
+- [x] Record the production URL, commit, and date in `docs/manual-smoke-test.md`.
 
 **Commit:** `docs: document clay slicer release and deployment checks`
 
@@ -978,7 +978,7 @@ npm run preview -- --host 127.0.0.1
 - [x] Heating commands always block; fit errors require explicit current-result acknowledgement.
 - [ ] The three preset seed profiles have been manually inspected and clearly labelled as
   requiring printer/paste calibration.
-- [ ] The production `dist` build completes a browser smoke test locally and on Cloudflare
+- [x] The production `dist` build completes a browser smoke test locally and on Cloudflare
   Pages.
 
 ## Explicitly Deferred After v1
