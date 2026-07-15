@@ -52,7 +52,13 @@ function device(
     maxHeight,
     originCenter,
     bedRound,
-    extruders: [{ extNozzle: 1.5, extFilament: 1.75, extSelect: ["T0"] }],
+    extruders: [{
+      extNozzle: 1.5,
+      extFilament: 1.75,
+      extOffsetX: 0,
+      extOffsetY: 0,
+      extSelect: ["T0"],
+    }],
     gcodePre: [...coldStartGcode],
     gcodePost: [...coldEndGcode],
   };

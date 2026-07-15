@@ -46,11 +46,27 @@ describe("machinePresets", () => {
     expect(getMachinePreset("eazao-style")?.device.originCenter).toBe(true);
   });
 
+  it("defines finite extruder offsets required by the current Kiri engine", () => {
+    for (const preset of machinePresets) {
+      const extruders = preset.device.extruders;
+      expect(Array.isArray(extruders)).toBe(true);
+      expect(extruders).toEqual([
+        expect.objectContaining({ extOffsetX: 0, extOffsetY: 0 }),
+      ]);
+    }
+  });
+
   it("provides positive nozzle diameters and independent valid defaults", () => {
     for (const preset of machinePresets) {
       expect(preset.nozzleDiameter).toBeGreaterThan(0);
       expect(preset.device.extruders).toEqual([
-        { extNozzle: preset.nozzleDiameter, extFilament: 1.75, extSelect: ["T0"] },
+        {
+          extNozzle: preset.nozzleDiameter,
+          extFilament: 1.75,
+          extOffsetX: 0,
+          extOffsetY: 0,
+          extSelect: ["T0"],
+        },
       ]);
       expect(preset.defaultControls).toEqual({
         layerHeight: 1,
