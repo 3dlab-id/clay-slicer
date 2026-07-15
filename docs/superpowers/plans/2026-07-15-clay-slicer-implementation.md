@@ -330,13 +330,13 @@ export function clayProcess(
 
 **Fixture preparation:**
 
-- [ ] Before changing the current UI, slice `tests/fixtures/asymmetric-box.stl` with the PoC
+- [x] Before changing the current UI, slice `tests/fixtures/asymmetric-box.stl` with the PoC
   Ender profile and download the result.
-- [ ] Confirm the file is real Kiri output and note its exact layer-comment syntax in
+- [x] Confirm the file is real Kiri output and note its exact layer-comment syntax in
   `tests/fixtures/README.md`.
-- [ ] Reduce the fixture only by deleting repeated middle moves/layers; retain the real header,
+- [x] Reduce the fixture only by deleting repeated middle moves/layers; retain the real header,
   mode commands, layer markers, representative travel/extrusion, and end macro.
-- [ ] Add a small hand-authored `modal-modes.gcode` covering absolute/relative XYZ and E,
+- [x] Add a small hand-authored `modal-modes.gcode` covering absolute/relative XYZ and E,
   `G92`, comments, lowercase commands, modal feedrate, retraction, and an E-only move.
 
 **Scanner contract:**
@@ -364,20 +364,20 @@ export function clayProcess(
 
 **Required tests:**
 
-- [ ] Absolute and relative XYZ.
-- [ ] Absolute and relative E, including positive absolute E after a travel.
-- [ ] `G92 E0` and coordinate resets.
-- [ ] Feedrate persistence, unit conversion, and modal coordinate-only moves.
-- [ ] Retraction/unretraction, E-only and zero-length moves.
-- [ ] Comments containing fake heating/motion commands are ignored.
-- [ ] Lowercase, CRLF, leading decimals, signed values, unknown commands, and missing feed.
-- [ ] Exact fixture line/layer/heating/extrusion stats.
-- [ ] No output field is `NaN` or infinite.
+- [x] Absolute and relative XYZ.
+- [x] Absolute and relative E, including positive absolute E after a travel.
+- [x] `G92 E0` and coordinate resets.
+- [x] Feedrate persistence, unit conversion, and modal coordinate-only moves.
+- [x] Retraction/unretraction, E-only and zero-length moves.
+- [x] Comments containing fake heating/motion commands are ignored.
+- [x] Lowercase, CRLF, leading decimals, signed values, unknown commands, and missing feed.
+- [x] Exact fixture line/layer/heating/extrusion stats.
+- [x] No output field is `NaN` or infinite.
 
 **Verification:**
 
-- [ ] `npm test -- tests/gcode-motion.test.ts tests/gcode-stats.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/gcode-motion.test.ts tests/gcode-stats.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: add modal G-code scanner and slice statistics`
 
