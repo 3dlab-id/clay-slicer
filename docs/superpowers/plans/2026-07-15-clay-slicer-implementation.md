@@ -759,67 +759,67 @@ Do not copy the full viewer component or its unrelated subsystems.
 
 **Upload flow:**
 
-- [ ] Support file input and drag/drop for `.stl`; extension is guidance, parser result is the
+- [x] Support file input and drag/drop for `.stl`; extension is guidance, parser result is the
   authority.
-- [ ] Call `file.arrayBuffer()` exactly once. Immediately parse/analyze and retain the same raw
+- [x] Call `file.arrayBuffer()` exactly once. Immediately parse/analyze and retain the same raw
   buffer for slicing.
-- [ ] On replacement, dispose the old geometry and reset slice state/acknowledgements. Dispose
+- [x] On replacement, dispose the old geometry and reset slice state/acknowledgements. Dispose
   the current geometry on unmount.
-- [ ] Invalid STL stays on Upload with actionable `role="alert"` guidance.
-- [ ] Show filename, size, dimensions, triangle count, and huge-model warning. Do not mount
+- [x] Invalid STL stays on Upload with actionable `role="alert"` guidance.
+- [x] Show filename, size, dimensions, triangle count, and huge-model warning. Do not mount
   `ModelPreview` until the user explicitly continues past a huge-model warning.
 
 **Configure flow:**
 
-- [ ] Render preset cards/select with seed-profile caveat, bed shape/dimensions, nozzle, and
+- [x] Render preset cards/select with seed-profile caveat, bed shape/dimensions, nozzle, and
   machine description.
-- [ ] Render labelled controls for layer height, line width, print speed, and vase mode.
-- [ ] Show live dimensions-versus-bed status and all pre-slice guardrails.
-- [ ] Slice is disabled until model and engine are ready. Engine failure has Retry without
+- [x] Render labelled controls for layer height, line width, print speed, and vase mode.
+- [x] Show live dimensions-versus-bed status and all pre-slice guardrails.
+- [x] Slice is disabled until model and engine are ready. Engine failure has Retry without
   erasing the model.
 
 **Slice orchestration:**
 
-- [ ] Capture request ID and input revision. Slice retained STL once with selected device plus
+- [x] Capture request ID and input revision. Slice retained STL once with selected device plus
   `clayProcess(controls, preset.processDefaults)`.
-- [ ] Bound the visible engine log while retaining enough recent context for errors.
-- [ ] Reject blank G-code through `kiri.ts`, then compute stats and warnings.
-- [ ] Parse toolpath in its own `try/catch`. On parser failure, store `toolpathError`, keep the
+- [x] Bound the visible engine log while retaining enough recent context for errors.
+- [x] Reject blank G-code through `kiri.ts`, then compute stats and warnings.
+- [x] Parse toolpath in its own `try/catch`. On parser failure, store `toolpathError`, keep the
   model preview/stats/warnings/G-code, and allow Download if safety rules pass.
-- [ ] Dispatch success only if request ID/revision are still current.
+- [x] Dispatch success only if request ID/revision are still current.
 
 **Preview flow:**
 
-- [ ] Toggle Model and Toolpath tabs with accessible tab semantics. Hide/disable toolpath with
+- [x] Toggle Model and Toolpath tabs with accessible tab semantics. Hide/disable toolpath with
   an explanatory notice when parsing failed or produced no drawable extrusion.
-- [ ] Show stats and warnings independent of the active preview tab.
-- [ ] A settings/machine change marks the visible result “Preview out of date,” returns the
+- [x] Show stats and warnings independent of the active preview tab.
+- [x] A settings/machine change marks the visible result “Preview out of date,” returns the
   primary action to Re-slice, and disables Download until refreshed.
-- [ ] A failed re-slice must not make the old result look current.
+- [x] A failed re-slice must not make the old result look current.
 
 **Download flow:**
 
-- [ ] Repeat the current warnings and stats. Final safe-download gating is completed in Task
+- [x] Repeat the current warnings and stats. Final safe-download gating is completed in Task
   12; Task 11 may use a temporary disabled button wired to the current-result selector.
 
 **App tests with Kiri/previews mocked:**
 
-- [ ] Valid upload reads once, advances, and shows dimensions.
-- [ ] Invalid/truncated upload remains on Upload.
-- [ ] Engine failure/retry preserves uploaded model.
-- [ ] Step navigation is gated by available/current data.
-- [ ] Selecting a machine resets defaults and invalidates an existing slice.
-- [ ] Control changes make output stale and disable Download.
-- [ ] Late slice response is ignored after settings/file changes.
-- [ ] Empty G-code shows retryable slice error.
-- [ ] Toolpath exception preserves stats/model/current G-code.
-- [ ] Huge model requires Continue before WebGL preview mounts.
+- [x] Valid upload reads once, advances, and shows dimensions.
+- [x] Invalid/truncated upload remains on Upload.
+- [x] Engine failure/retry preserves uploaded model.
+- [x] Step navigation is gated by available/current data.
+- [x] Selecting a machine resets defaults and invalidates an existing slice.
+- [x] Control changes make output stale and disable Download.
+- [x] Late slice response is ignored after settings/file changes.
+- [x] Empty G-code shows retryable slice error.
+- [x] Toolpath exception preserves stats/model/current G-code.
+- [x] Huge model requires Continue before WebGL preview mounts.
 
 **Verification:**
 
-- [ ] `npm test -- tests/App.test.tsx`
-- [ ] `npm test`
-- [ ] `npm run build`
+- [x] `npm test -- tests/App.test.tsx`
+- [x] `npm test`
+- [x] `npm run build`
 
 **Commit:** `feat: integrate clay slicing wizard workflow`
 

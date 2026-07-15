@@ -1,164 +1,266 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { clayProcess, type ClayControls } from "./clay-profile";
+import { ConfigureStep } from "./components/ConfigureStep";
+import { DownloadStep } from "./components/DownloadStep";
+import { PreviewStep } from "./components/PreviewStep";
+import { UploadStep } from "./components/UploadStep";
+import { WizardSteps } from "./components/WizardSteps";
+import { buildGcodeFilename, downloadGcode } from "./download";
+import { getGcodeStats } from "./gcode-stats";
+import { evaluateGuardrails, evaluateModelGuardrails } from "./guardrails";
+import { loadKiri } from "./kiri-loader";
 import { sliceToGcode } from "./kiri";
-import { clayDevice, clayProcess, defaultControls, type ClayControls } from "./clay-profile";
+import { getMachinePreset, machinePresets } from "./machines";
+import {
+  disposeModelAsset,
+  parseAndAnalyzeStl,
+  type ModelAsset,
+} from "./model-analysis";
+import { parseToolpath } from "./gcode-toolpath";
+import {
+  canAccessStep,
+  canDownload,
+  canSlice,
+  createInitialWorkflowStore,
+  hasCurrentSlice,
+  isSliceStale,
+  workflowReducer,
+  type UploadedModel,
+} from "./workflow";
 
-type Status = "idle" | "loading-engine" | "ready" | "slicing" | "done" | "error";
+const INITIAL_PRESET = machinePresets[0]!;
+const ENGINE_LOG_LIMIT = 50;
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export function App() {
-  const [status, setStatus] = useState<Status>("loading-engine");
-  const [error, setError] = useState<string>("");
-  const [controls, setControls] = useState<ClayControls>(defaultControls);
-  const [file, setFile] = useState<File | null>(null);
-  const [gcode, setGcode] = useState<string>("");
-  const [log, setLog] = useState<string[]>([]);
-  const logRef = useRef<string[]>([]);
+  const [state, dispatch] = useReducer(
+    workflowReducer<ModelAsset>,
+    undefined,
+    () => createInitialWorkflowStore<ModelAsset>({
+      machineId: INITIAL_PRESET.id,
+      controls: { ...INITIAL_PRESET.defaultControls },
+    }),
+  );
+  const [hugePreviewApproved, setHugePreviewApproved] = useState(false);
+  const assetRef = useRef<ModelAsset | null>(null);
+  const uploadGeneration = useRef(0);
+  const sliceGeneration = useRef(0);
+  const mounted = useRef(true);
+  const preset = getMachinePreset(state.machineId) ?? INITIAL_PRESET;
+  const preSliceWarnings = useMemo(() => state.model
+    ? evaluateModelGuardrails({
+      model: state.model.asset.analysis,
+      preset,
+      controls: state.controls,
+    })
+    : [], [preset, state.controls, state.model]);
 
-  // Wait for the grid.space engine.js global to be ready.
   useEffect(() => {
-    let alive = true;
-    const check = setInterval(() => {
-      if (window.kiri?.newEngine) {
-        clearInterval(check);
-        if (alive) setStatus("ready");
-      }
-    }, 150);
-    const timeout = setTimeout(() => {
-      clearInterval(check);
-      if (alive && !window.kiri?.newEngine) {
-        setStatus("error");
-        setError("Kiri:Moto engine.js did not load. Check your connection to grid.space.");
-      }
-    }, 15000);
+    mounted.current = true;
     return () => {
-      alive = false;
-      clearInterval(check);
-      clearTimeout(timeout);
+      mounted.current = false;
+      uploadGeneration.current += 1;
+      if (assetRef.current) disposeModelAsset(assetRef.current);
+      assetRef.current = null;
     };
   }, []);
 
-  function set<K extends keyof ClayControls>(key: K, value: ClayControls[K]) {
-    setControls((c) => ({ ...c, [key]: value }));
-  }
+  useEffect(() => {
+    let active = true;
+    void loadKiri({ retry: state.engineRetryGeneration > 0 }).then(
+      () => { if (active) dispatch({ type: "engineReady" }); },
+      (error: unknown) => {
+        if (active) dispatch({ type: "engineFailed", error: errorMessage(error) });
+      },
+    );
+    return () => { active = false; };
+  }, [state.engineRetryGeneration]);
 
-  async function handleSlice() {
-    if (!file) return;
-    setStatus("slicing");
-    setError("");
-    setGcode("");
-    logRef.current = [];
-    setLog([]);
+  async function handleFile(file: File) {
+    const generation = ++uploadGeneration.current;
+    if (assetRef.current) disposeModelAsset(assetRef.current);
+    assetRef.current = null;
+    setHugePreviewApproved(false);
+    dispatch({ type: "uploadStarted" });
+
     try {
-      const stl = await file.arrayBuffer();
-      const result = await sliceToGcode({
-        stl,
-        device: clayDevice,
-        process: clayProcess(controls),
-        onLog: (m) => {
-          logRef.current = [...logRef.current.slice(-40), m];
-          setLog(logRef.current);
-        },
-      });
-      setGcode(result);
-      setStatus("done");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setStatus("error");
+      const buffer = await file.arrayBuffer();
+      const asset = parseAndAnalyzeStl(buffer, file.size);
+      if (!mounted.current || generation !== uploadGeneration.current) {
+        disposeModelAsset(asset);
+        return;
+      }
+
+      assetRef.current = asset;
+      setHugePreviewApproved(!asset.analysis.isHuge);
+      const model: UploadedModel<ModelAsset> = {
+        file: { name: file.name, size: file.size, type: file.type },
+        buffer,
+        asset,
+      };
+      dispatch({ type: "uploadSucceeded", model });
+    } catch (error) {
+      if (mounted.current && generation === uploadGeneration.current) {
+        dispatch({ type: "uploadFailed", error: errorMessage(error) });
+      }
     }
   }
 
-  function download() {
-    const name = (file?.name.replace(/\.stl$/i, "") ?? "model") + "_clay.gcode";
-    const blob = new Blob([gcode], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
+  function handleMachineChange(machineId: string) {
+    const nextPreset = getMachinePreset(machineId);
+    if (!nextPreset) return;
+    dispatch({
+      type: "machineChanged",
+      machineId,
+      controls: { ...nextPreset.defaultControls },
+    });
   }
 
-  const heatingCmds = gcode ? (gcode.match(/^(M104|M109|M140|M190)\b/gm) ?? []).length : 0;
-  const lineCount = gcode ? gcode.split("\n").length : 0;
+  function handleControlsChange(controls: ClayControls) {
+    dispatch({ type: "controlsChanged", controls });
+  }
+
+  async function handleSlice() {
+    const model = state.model;
+    if (!model || !canSlice(state)) return;
+    const requestId = `slice-${++sliceGeneration.current}`;
+    const revision = state.inputRevision;
+    const selectedPreset = preset;
+    const controls = { ...state.controls };
+    dispatch({ type: "sliceStarted", requestId, revision });
+
+    try {
+      const gcode = await sliceToGcode({
+        stl: model.buffer,
+        device: selectedPreset.device,
+        process: clayProcess(controls, selectedPreset.processDefaults),
+        onLog: (message) => dispatch({
+          type: "sliceLogAdded",
+          requestId,
+          message,
+          limit: ENGINE_LOG_LIMIT,
+        }),
+      });
+      const stats = getGcodeStats(gcode);
+      const warnings = evaluateGuardrails({
+        model: model.asset.analysis,
+        preset: selectedPreset,
+        controls,
+        stats,
+      });
+      let toolpath;
+      let toolpathError: string | undefined;
+      try {
+        const parsed = parseToolpath(gcode, { layerHeightHint: controls.layerHeight });
+        if (parsed.layers.some((layer) => layer.length > 0)) toolpath = parsed;
+        else toolpathError = "No drawable extrusion moves were found.";
+      } catch (error) {
+        toolpathError = errorMessage(error);
+      }
+
+      dispatch({
+        type: "sliceSucceeded",
+        requestId,
+        revision,
+        result: {
+          revision,
+          gcode,
+          stats,
+          warnings,
+          toolpath,
+          toolpathError,
+        },
+      });
+    } catch (error) {
+      dispatch({ type: "sliceFailed", requestId, revision, error: errorMessage(error) });
+    }
+  }
+
+  const stale = isSliceStale(state);
+  const currentResult = hasCurrentSlice(state) ? state.sliceResult : null;
+  const filename = buildGcodeFilename(state.model?.file.name ?? "model", state.machineId);
 
   return (
-    <div className="wrap">
-      <header>
-        <h1>Clay Slicer</h1>
-        <span className="sub">Kiri:Moto engine · Ender-3 clay printer · 3D Lab Bali</span>
-        <span className={`pill ${status}`}>{status.replace("-", " ")}</span>
+    <div className="app-shell">
+      <header className="app-header">
+        <div>
+          <p className="eyebrow">3D Lab Bali</p>
+          <h1>Clay Slicer</h1>
+          <p>Prepare cold-extrusion clay G-code entirely in your browser.</p>
+        </div>
+        <span className={`engine-status ${state.engineState}`} aria-live="polite">
+          Engine {state.engineState}
+        </span>
       </header>
 
-      <div className="grid">
-        <section className="panel">
-          <h2>1 · Model</h2>
-          <input
-            type="file"
-            accept=".stl"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      <WizardSteps
+        current={state.step}
+        canAccess={(step) => canAccessStep(state, step)}
+        onSelect={(step) => dispatch({ type: "stepRequested", step })}
+      />
+
+      <main>
+        {state.step === "upload" && (
+          <UploadStep model={state.model} error={state.uploadError} onFile={handleFile} />
+        )}
+        {state.step === "configure" && state.model && (
+          <ConfigureStep
+            asset={state.model.asset}
+            fileName={state.model.file.name}
+            fileSize={state.model.file.size}
+            presets={machinePresets}
+            preset={preset}
+            controls={state.controls}
+            warnings={preSliceWarnings}
+            engineState={state.engineState}
+            engineError={state.engineError}
+            showHugePreview={hugePreviewApproved}
+            isSlicing={state.workflowState === "slicing"}
+            hasPriorSlice={state.sliceResult !== null}
+            previewStale={stale}
+            onApproveHugePreview={() => setHugePreviewApproved(true)}
+            onMachineChange={handleMachineChange}
+            onControlsChange={handleControlsChange}
+            onRetryEngine={() => dispatch({ type: "engineRetry" })}
+            onSlice={handleSlice}
           />
-          {file && <p className="muted">{file.name} · {(file.size / 1024).toFixed(0)} KB</p>}
+        )}
+        {state.step === "preview" && state.model && (
+          <PreviewStep
+            asset={state.model.asset}
+            preset={preset}
+            result={state.sliceResult}
+            workflowState={state.workflowState}
+            stale={stale}
+            sliceError={state.sliceError}
+            log={state.sliceLog}
+            canSlice={canSlice(state)}
+            modelFitError={preSliceWarnings.some(
+              ({ id }) => id === "fit-footprint" || id === "fit-height",
+            )}
+            onSlice={handleSlice}
+            onDownloadStep={() => dispatch({ type: "stepRequested", step: "download" })}
+          />
+        )}
+        {state.step === "download" && currentResult && state.model && (
+          <DownloadStep
+            result={currentResult}
+            filename={filename}
+            canDownload={canDownload(state)}
+            onDownload={() => downloadGcode({
+              gcode: currentResult.gcode,
+              modelName: state.model!.file.name,
+              machineId: state.machineId,
+            })}
+          />
+        )}
+      </main>
 
-          <h2>2 · Clay settings</h2>
-          <label>
-            Layer height <b>{controls.layerHeight.toFixed(2)} mm</b>
-            <input type="range" min={0.4} max={2} step={0.1} value={controls.layerHeight}
-              onChange={(e) => set("layerHeight", +e.target.value)} />
-          </label>
-          <label>
-            Line width <b>{controls.lineWidth.toFixed(2)} mm</b>
-            <input type="range" min={0.8} max={3} step={0.1} value={controls.lineWidth}
-              onChange={(e) => set("lineWidth", +e.target.value)} />
-          </label>
-          <label>
-            Print speed <b>{controls.printSpeed} mm/s</b>
-            <input type="range" min={5} max={60} step={1} value={controls.printSpeed}
-              onChange={(e) => set("printSpeed", +e.target.value)} />
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={controls.vaseMode}
-              onChange={(e) => set("vaseMode", e.target.checked)} />
-            Vase mode (continuous spiral, no seam)
-          </label>
-
-          <button
-            className="primary"
-            disabled={!file || status === "slicing" || status === "loading-engine"}
-            onClick={handleSlice}
-          >
-            {status === "slicing" ? "Slicing…" : "Slice"}
-          </button>
-          {error && <p className="err">{error}</p>}
-        </section>
-
-        <section className="panel">
-          <h2>3 · G-code</h2>
-          {gcode ? (
-            <>
-              <div className="stats">
-                <span>{lineCount.toLocaleString()} lines</span>
-                <span className={heatingCmds ? "warn" : "ok"}>
-                  {heatingCmds ? `⚠ ${heatingCmds} heating cmds` : "✓ no heating cmds"}
-                </span>
-                <button onClick={download}>Download .gcode</button>
-              </div>
-              <pre className="gcode">{gcode.split("\n").slice(0, 200).join("\n")}
-{lineCount > 200 ? `\n… (${(lineCount - 200).toLocaleString()} more lines)` : ""}</pre>
-            </>
-          ) : (
-            <p className="muted">Slice a model to preview G-code here.</p>
-          )}
-
-          {log.length > 0 && (
-            <>
-              <h2>Engine log</h2>
-              <pre className="log">{log.join("\n")}</pre>
-            </>
-          )}
-        </section>
-      </div>
-
-      <footer className="muted">
-        PoC — client-side slicing via grid.space. Tune <code>src/clay-profile.ts</code> for your paste.
+      <footer>
+        Presets are starting points for calibration. Confirm output on your clay printer before use.
       </footer>
     </div>
   );

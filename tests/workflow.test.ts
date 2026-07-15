@@ -100,14 +100,18 @@ describe("workflow reducer", () => {
     expect(next.fitAcknowledgedRevision).toBeNull();
   });
 
-  it("keeps an invalid upload on Upload without replacing the retained model", () => {
+  it("clears the retained model as soon as a replacement upload starts", () => {
     const loaded = withModel();
-    const failed = workflowReducer(loaded, { type: "uploadFailed", error: "Invalid STL" });
+    const started = workflowReducer(loaded, { type: "uploadStarted" });
+    const failed = workflowReducer(started, { type: "uploadFailed", error: "Invalid STL" });
 
     expect(failed.step).toBe("upload");
     expect(failed.uploadError).toBe("Invalid STL");
-    expect(failed.model).toBe(loaded.model);
-    expect(failed.workflowState).toBe("modelLoaded");
+    expect(failed.model).toBeNull();
+    expect(failed.workflowState).toBe("empty");
+    expect(started.inputRevision).toBe(loaded.inputRevision + 1);
+    expect(failed.sliceResult).toBeNull();
+    expect(failed.activeSlice).toBeNull();
   });
 
   it("invalidates but retains a result when controls or machine change", () => {
@@ -319,6 +323,32 @@ describe("workflow selectors", () => {
     expect(canAccessStep(stale, "preview")).toBe(false);
     expect(canAccessStep(stale, "download")).toBe(false);
     expect(hasCurrentSlice(stale)).toBe(false);
+  });
+
+  it("makes a prior result non-current while re-slicing and after failure", () => {
+    const sliced = withSlice();
+    const slicing = workflowReducer(sliced, {
+      type: "sliceStarted",
+      requestId: "request-2",
+      revision: sliced.inputRevision,
+    });
+    const failed = workflowReducer(slicing, {
+      type: "sliceFailed",
+      requestId: "request-2",
+      revision: sliced.inputRevision,
+      error: "Re-slice failed",
+    });
+
+    expect(slicing.sliceResult).toBe(sliced.sliceResult);
+    expect(isSliceStale(slicing)).toBe(true);
+    expect(hasCurrentSlice(slicing)).toBe(false);
+    expect(canAccessStep(slicing, "download")).toBe(false);
+    expect(canDownload(slicing)).toBe(false);
+    expect(failed.sliceResult).toBe(sliced.sliceResult);
+    expect(isSliceStale(failed)).toBe(true);
+    expect(hasCurrentSlice(failed)).toBe(false);
+    expect(canAccessStep(failed, "download")).toBe(false);
+    expect(canDownload(failed)).toBe(false);
   });
 
   it("ignores requests to navigate to inaccessible steps", () => {

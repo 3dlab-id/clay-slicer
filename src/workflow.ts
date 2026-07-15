@@ -46,6 +46,7 @@ export type WorkflowAction<ModelAsset = unknown> =
   | { type: "engineReady" }
   | { type: "engineFailed"; error: string }
   | { type: "engineRetry" }
+  | { type: "uploadStarted" }
   | { type: "uploadFailed"; error: string }
   | { type: "uploadSucceeded"; model: UploadedModel<ModelAsset> }
   | { type: "machineChanged"; machineId: string; controls: ClayControls }
@@ -81,11 +82,17 @@ export function createInitialWorkflowStore<ModelAsset = unknown>(args: {
 }
 
 export function isSliceStale(state: WorkflowStore): boolean {
-  return state.sliceResult !== null && state.sliceResult.revision !== state.inputRevision;
+  return state.sliceResult !== null && (
+    state.workflowState !== "sliced" || state.sliceResult.revision !== state.inputRevision
+  );
 }
 
 export function hasCurrentSlice(state: WorkflowStore): boolean {
-  return state.sliceResult !== null && !isSliceStale(state);
+  return (
+    state.workflowState === "sliced" &&
+    state.sliceResult !== null &&
+    state.sliceResult.revision === state.inputRevision
+  );
 }
 
 export function canSlice(state: WorkflowStore): boolean {
@@ -176,6 +183,20 @@ export function workflowReducer<ModelAsset>(
         engineState: "loading",
         engineError: null,
         engineRetryGeneration: state.engineRetryGeneration + 1,
+      };
+    case "uploadStarted":
+      return {
+        ...state,
+        workflowState: "empty",
+        step: "upload",
+        uploadError: null,
+        model: null,
+        inputRevision: state.inputRevision + 1,
+        sliceResult: null,
+        sliceError: null,
+        sliceLog: [],
+        activeSlice: null,
+        fitAcknowledgedRevision: null,
       };
     case "uploadFailed":
       return { ...state, step: "upload", uploadError: action.error };
