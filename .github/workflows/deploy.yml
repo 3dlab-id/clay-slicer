@@ -1,0 +1,71 @@
+name: Validate and Deploy Clay Slicer
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clay-slicer-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Retain tested production bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: clay-slicer-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore tested production bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: clay-slicer-dist-${{ github.sha }}
+          path: dist
+
+      - name: Deploy Cloudflare Pages production
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=clay-slicer --branch=main --commit-hash=${{ github.sha }}
+
+      - name: Verify production static assets
+        run: |
+          for path in / /lib/kiri/run/engine.js /lib/kiri/run/worker.js /wasm/manifold.wasm; do
+            curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 \
+              --output /dev/null "https://clay-slicer.pages.dev${path}"
+          done
+          curl --fail --silent --show-error --head https://clay-slicer.pages.dev/lib/kiri/run/engine.js \
+            | tr -d '\r' | grep -Eqi '^content-type: (application|text)/javascript'
+          curl --fail --silent --show-error --head https://clay-slicer.pages.dev/lib/kiri/run/worker.js \
+            | tr -d '\r' | grep -Eqi '^content-type: (application|text)/javascript'
+          curl --fail --silent --show-error --head https://clay-slicer.pages.dev/wasm/manifold.wasm \
+            | tr -d '\r' | grep -Eqi '^content-type: application/wasm'

@@ -1,9 +1,9 @@
 {
-  "name": "clay-slicer-poc",
+  "name": "clay-slicer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Proof-of-concept clay slicer: a simple React UI over the Kiri:Moto engine",
+  "description": "Client-side clay printer slicer with machine presets, 3D previews, guardrails, and safe G-code download",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -896,19 +896,19 @@ Do not copy the full viewer component or its unrelated subsystems.
 - Rewrite: `README.md`
 - Add: `docs/manual-smoke-test.md`
 - Add: `.nvmrc` or document the selected Node version in `README.md`
-- Optionally add: `wrangler.jsonc` and a `deploy` script if this repository will deploy through
-  Wrangler rather than the Cloudflare Pages dashboard/Git integration.
+- Add: `.github/workflows/deploy.yml` for pull-request validation and tested-artifact production
+  deployment through Wrangler rather than Cloudflare Pages Git integration.
 
 **README requirements:**
 
-- [ ] Replace PoC description/screens with v1 upload/configure/preview/download flow.
-- [ ] Document local development, tests, production build, and Cloudflare Pages settings:
+- [x] Replace PoC description/screens with v1 upload/configure/preview/download flow.
+- [x] Document local development, tests, production build, and Cloudflare Pages settings:
   project root is this folder, build command `npm run build`, output directory `dist`.
-- [ ] State that slicing is fully client-side and presets are calibration seeds.
-- [ ] Document supported STL-only scope and v1 non-goals.
-- [ ] Document the pinned, self-hosted Kiri engine/worker/WASM assets and their coordinated
+- [x] State that slicing is fully client-side and presets are calibration seeds.
+- [x] Document supported STL-only scope and v1 non-goals.
+- [x] Document the pinned, self-hosted Kiri engine/worker/WASM assets and their coordinated
   update procedure.
-- [ ] Label time/extrusion/overhang/feature outputs as estimates/advisories.
+- [x] Label time/extrusion/overhang/feature outputs as estimates/advisories.
 
 **Automated release gate:**
 
@@ -919,9 +919,13 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-- [ ] Confirm the built app loads from `dist`, not only Vite dev mode.
-- [ ] Confirm no test uses live grid.space/network access.
-- [ ] Confirm production bundle contains no backend/API/database dependency.
+- [x] GitHub Actions validates pull requests and `main`, retains the tested `dist/` artifact,
+  and deploys only successful non-PR `main` runs.
+- [x] Workflow YAML passes structural validation and production verification covers `/` plus
+  the vendored engine, worker, and WASM paths.
+- [x] Confirm the built app loads from `dist`, not only Vite dev mode.
+- [x] Confirm no test uses live grid.space/network access.
+- [x] Confirm production bundle contains no backend/API/database dependency.
 
 **Manual local E2E:**
 
@@ -931,11 +935,11 @@ npm run preview -- --host 127.0.0.1
 - [ ] Change layer height, line width, and speed; each must mark preview stale, and re-slicing
   must change the appropriate Kiri output.
 - [ ] Scrub first/middle/final toolpath layers and toggle current/all-through-current.
-- [ ] Confirm stats are plausible, downloaded file is non-empty, filename includes machine ID,
+- [x] Confirm stats are plausible, downloaded file is non-empty, filename includes machine ID,
   and executable G-code contains no `M104/M109/M140/M190`.
 - [ ] Compare asymmetric model placement with toolpath placement. If Kiri coordinates do not
   match normalization, stop release and correct the shared transform contract.
-- [ ] Upload invalid/truncated STL and recover without reloading the page.
+- [x] Upload invalid/truncated STL and recover without reloading the page.
 - [ ] Block the engine request, observe failure, restore network, Retry, and slice without
   re-uploading.
 - [ ] Force a toolpath parser error in development and confirm model/stats/download survive.
@@ -949,12 +953,12 @@ npm run preview -- --host 127.0.0.1
 
 **Cloudflare Pages verification:**
 
-- [ ] Deploy a preview using the chosen Pages workflow.
-- [ ] Repeat upload -> configure -> slice -> preview -> download on the preview URL.
+- [ ] Deploy production from a successful `main` run using the chosen Pages workflow.
+- [ ] Repeat upload -> configure -> slice -> preview -> download on the production URL.
 - [ ] Verify the self-hosted engine, worker, and WASM requests load from the deployed origin.
 - [ ] Confirm HTTPS, asset paths, MIME types, caching, and no SPA fallback requirement (v1 has
   no routes).
-- [ ] Record the preview/production URL and date in `docs/manual-smoke-test.md`.
+- [ ] Record the production URL, commit, and date in `docs/manual-smoke-test.md`.
 
 **Commit:** `docs: document clay slicer release and deployment checks`
 
@@ -963,15 +967,15 @@ npm run preview -- --host 127.0.0.1
 ## Final Definition of Done
 
 - [ ] All v1 scope in the approved design is implemented; non-goals remain absent.
-- [ ] Every pure unit has focused tests, including rectangular/circular fit and a committed
+- [x] Every pure unit has focused tests, including rectangular/circular fit and a committed
   real Kiri G-code fixture.
 - [ ] `npm test`, `npm run build`, and `git diff --check` pass from a clean checkout.
-- [ ] One retained STL buffer drives both normalized preview analysis and exactly one Kiri
+- [x] One retained STL buffer drives both normalized preview analysis and exactly one Kiri
   slice per user action.
 - [ ] Model and toolpath previews are aligned, responsive, demand-rendered, and cleaned up.
-- [ ] Changing machine/settings creates a stale result that cannot be downloaded.
-- [ ] Toolpath parsing can fail without blocking safe G-code download.
-- [ ] Heating commands always block; fit errors require explicit current-result acknowledgement.
+- [x] Changing machine/settings creates a stale result that cannot be downloaded.
+- [x] Toolpath parsing can fail without blocking safe G-code download.
+- [x] Heating commands always block; fit errors require explicit current-result acknowledgement.
 - [ ] The three preset seed profiles have been manually inspected and clearly labelled as
   requiring printer/paste calibration.
 - [ ] The production `dist` build completes a browser smoke test locally and on Cloudflare
