@@ -456,30 +456,30 @@ export function parseAndAnalyzeStl(
 
 **Steps:**
 
-- [ ] Parse with `STLLoader.parse`. Catch parser exceptions and replace them with a stable,
+- [x] Parse with `STLLoader.parse`. Catch parser exceptions and replace them with a stable,
   actionable invalid-STL error.
-- [ ] Reject missing positions, zero triangles, non-triangle vertex counts, non-finite
+- [x] Reject missing positions, zero triangles, non-triangle vertex counts, non-finite
   coordinates, truncated files, and geometry with no usable 3D bounds.
-- [ ] Clone/own the returned geometry, center X/Y, place minimum Z at zero, compute vertex
+- [x] Clone/own the returned geometry, center X/Y, place minimum Z at zero, compute vertex
   normals, bounding box, and bounding sphere.
-- [ ] Return exact normalized `Bounds3`, triangle count, source bytes, huge flag, and overhang
+- [x] Return exact normalized `Bounds3`, triangle count, source bytes, huge flag, and overhang
   fraction.
-- [ ] Compute overhang using triangle cross products and face area. Ignore degenerate faces.
+- [x] Compute overhang using triangle cross products and face area. Ignore degenerate faces.
   Exclude faces whose three vertices are within a named epsilon of `minZ` so a closed model's
   build-plate bottom does not trigger the warning.
-- [ ] Do not calculate feature size from shortest edges. Leave `estimatedFeatureSizeMm`
+- [x] Do not calculate feature size from shortest edges. Leave `estimatedFeatureSizeMm`
   undefined.
-- [ ] Do not transfer or mutate the caller's retained `ArrayBuffer`.
-- [ ] Test ASCII and binary STL, asymmetric normalization, triangle count, finite bounds,
+- [x] Do not transfer or mutate the caller's retained `ArrayBuffer`.
+- [x] Test ASCII and binary STL, asymmetric normalization, triangle count, finite bounds,
   invalid/truncated/non-finite/empty input, upward/vertical/downward/sloped triangles, bottom
   exclusion, degenerate exclusion, and huge thresholds immediately below/at/above boundary.
-- [ ] Expose a small `disposeModelAsset` or document that `App` owns and disposes the geometry
+- [x] Expose a small `disposeModelAsset` or document that `App` owns and disposes the geometry
   on replacement/unmount.
 
 **Verification:**
 
-- [ ] `npm test -- tests/model-analysis.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- tests/model-analysis.test.ts`
+- [x] `npm run build`
 
 **Commit:** `feat: parse and analyze uploaded STL models`
 
