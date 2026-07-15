@@ -28,6 +28,8 @@ import {
   type UploadedModel,
 } from "./workflow";
 
+type Theme = "light" | "dark";
+
 const INITIAL_PRESET = machinePresets[0]!;
 const ENGINE_LOG_LIMIT = 50;
 const STEP_HEADING_ID = {
@@ -39,6 +41,47 @@ const STEP_HEADING_ID = {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function preferredTheme(): Theme {
+  const saved = window.localStorage.getItem("pref-theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(preferredTheme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    window.localStorage.setItem("pref-theme", theme);
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => root.classList.remove("theme-switching"));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [theme]);
+
+  const nextTheme = theme === "light" ? "dark" : "light";
+  return (
+    <button
+      className="theme-toggle"
+      type="button"
+      aria-label={`Switch to ${nextTheme} theme`}
+      title={`Switch to ${nextTheme} theme`}
+      onClick={() => setTheme(nextTheme)}
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        {theme === "light" ? (
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+        ) : (
+          <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></>
+        )}
+      </svg>
+    </button>
+  );
 }
 
 export function App() {
@@ -238,14 +281,23 @@ export function App() {
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="app-header">
-        <div>
-          <p className="eyebrow">3D Lab Bali</p>
-          <h1>Clay Slicer</h1>
-          <p>Prepare cold-extrusion clay G-code entirely in your browser.</p>
+        <div className="brand-bar">
+          <a className="wordmark" href="https://3dlab.id/" aria-label="3D Lab Apps home">
+            <span className="brand-mark" aria-hidden="true" />
+            <span>3D Lab Apps</span>
+          </a>
+          <div className="header-tools">
+            <span className={`engine-status ${state.engineState}`} aria-live="polite">
+              <span aria-hidden="true" /> Engine {state.engineState}
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
-        <span className={`engine-status ${state.engineState}`} aria-live="polite">
-          Engine {state.engineState}
-        </span>
+        <div className="hero-copy">
+          <p className="eyebrow">Browser tool / cold extrusion</p>
+          <h1>Clay Slicer</h1>
+          <p>Turn an STL into printer-ready clay G-code, locally in your browser.</p>
+        </div>
       </header>
 
       <WizardSteps
@@ -317,7 +369,8 @@ export function App() {
       </main>
 
       <footer>
-        Presets are starting points for calibration. Confirm output on your clay printer before use.
+        <span className="footer-label">// Calibration note</span>
+        <span>Presets are starting points. Confirm output on your clay printer before use.</span>
       </footer>
     </div>
   );
