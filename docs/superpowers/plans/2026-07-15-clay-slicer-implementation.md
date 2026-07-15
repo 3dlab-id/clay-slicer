@@ -613,6 +613,8 @@ Prefer a pure reducer plus narrow action creators/selectors such as `isSliceStal
 - Add: `public/lib/kiri/run/worker.js`
 - Add: `public/wasm/manifold.wasm`
 - Add: `public/lib/kiri/README.md`
+- Add: `public/lib/kiri/LICENSE-grid-apps.md`
+- Add: `public/lib/kiri/LICENSE-manifold.txt`
 
 **Steps:**
 

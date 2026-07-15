@@ -1,10 +1,15 @@
 import type { KiriEngine } from "./kiri";
 
-export const KIRI_ENGINE_MODULE_URL = "https://grid.space/lib/kiri/run/engine.js";
+export const KIRI_ENGINE_MODULE_URL = "/lib/kiri/run/engine.js";
+export const KIRI_WORKER_MODULE_URL = "/lib/kiri/run/worker.js";
+
+interface KiriEngineOptions {
+  workURL: string;
+}
 
 interface KiriEngineModule {
-  Engine?: new () => KiriEngine;
-  newEngine?: () => KiriEngine;
+  Engine?: new (options?: KiriEngineOptions) => KiriEngine;
+  newEngine?: (options?: KiriEngineOptions) => KiriEngine;
 }
 
 type EngineModuleImporter = (url: string) => Promise<unknown>;
@@ -12,7 +17,7 @@ type EngineModuleImporter = (url: string) => Promise<unknown>;
 export interface LoadKiriOptions {
   retry?: boolean;
   timeoutMs?: number;
-  /** Test seam; production callers should use the official module URL. */
+  /** Test seam; production callers should use the vendored module. */
   importModule?: EngineModuleImporter;
 }
 
@@ -37,10 +42,10 @@ function factoryFromModule(value: unknown): (() => KiriEngine) | null {
 
   const module = value as KiriEngineModule;
   if (typeof module.newEngine === "function") {
-    return () => module.newEngine!();
+    return () => module.newEngine!({ workURL: KIRI_WORKER_MODULE_URL });
   }
   if (typeof module.Engine === "function") {
-    return () => new module.Engine!();
+    return () => new module.Engine!({ workURL: KIRI_WORKER_MODULE_URL });
   }
   return null;
 }
@@ -51,7 +56,7 @@ function retryUrl(generation: number): string {
   return `${KIRI_ENGINE_MODULE_URL}${separator}loader-retry=${generation}`;
 }
 
-/** Load the official Kiri ESM bundle and expose the legacy window.kiri factory. */
+/** Load the vendored Kiri ESM bundle and expose the legacy window.kiri factory. */
 export function loadKiri(options: LoadKiriOptions = {}): Promise<void> {
   if (window.kiri?.newEngine) return Promise.resolve();
   if (inFlight) return inFlight;

@@ -12,8 +12,10 @@ describe("loadKiri", () => {
     delete window.kiri;
   });
 
-  it("imports the official module once, shares the in-flight promise, and installs newEngine", async () => {
-    const { KIRI_ENGINE_MODULE_URL, loadKiri } = await import("../src/kiri-loader");
+  it("imports the vendored module once, shares the in-flight promise, and installs newEngine", async () => {
+    const { KIRI_ENGINE_MODULE_URL, KIRI_WORKER_MODULE_URL, loadKiri } = await import(
+      "../src/kiri-loader"
+    );
     let resolveImport!: (module: unknown) => void;
     const importModule = vi.fn(
       () => new Promise<unknown>((resolve) => {
@@ -28,22 +30,30 @@ describe("loadKiri", () => {
     expect(importModule).toHaveBeenCalledOnce();
     expect(importModule).toHaveBeenCalledWith(KIRI_ENGINE_MODULE_URL);
 
-    resolveImport({ newEngine: () => engine });
+    const newEngine = vi.fn(() => engine);
+    resolveImport({ newEngine });
     await first;
 
     expect(window.kiri?.newEngine()).toBe(engine);
+    expect(newEngine).toHaveBeenCalledWith({ workURL: KIRI_WORKER_MODULE_URL });
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it("adapts the official Engine class export", async () => {
-    const { loadKiri } = await import("../src/kiri-loader");
+    const { KIRI_WORKER_MODULE_URL, loadKiri } = await import("../src/kiri-loader");
+    let receivedOptions: unknown;
     class Engine {
+      constructor(options?: unknown) {
+        receivedOptions = options;
+      }
+
       readonly marker = "constructed";
     }
 
     await loadKiri({ importModule: async () => ({ Engine }) });
 
     expect(window.kiri?.newEngine()).toBeInstanceOf(Engine);
+    expect(receivedOptions).toEqual({ workURL: KIRI_WORKER_MODULE_URL });
   });
 
   it("resolves immediately when a compatible global already exists", async () => {
